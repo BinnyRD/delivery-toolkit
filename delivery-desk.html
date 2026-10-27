@@ -1,0 +1,1283 @@
+<!doctype html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Portfolio dashboard with explained RAG health, RAID logs, intake scoring and a one-click weekly report.">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Delivery Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: control-room portfolio desk — fixed nav rail + scanning workspace; summary first, detail below. */
+:root{
+  --bg:#EEF0F5; --surface:#FFFFFF; --sunk:#F6F7FA; --ink:#121829; --muted:#586179; --faint:#8A92A6; --line:#DCE0E9;
+  --accent:#2C49C2; --accent-soft:#E6EAFB; --accent-ink:#FFFFFF;
+  --red:#C2342A; --red-soft:#FBE7E5; --amber:#B7790A; --amber-soft:#FCF1DA; --green:#1F7D53; --green-soft:#E0F2E9;
+  --paper:#FFFFFF;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D111C; --surface:#151B2A; --sunk:#111623; --ink:#E5E9F3; --muted:#9AA3B9; --faint:#6E7790; --line:#262E44;
+  --accent:#8299FF; --accent-soft:#1D2547; --accent-ink:#0D111C;
+  --red:#F2685D; --red-soft:#3A1B1C; --amber:#EFB23C; --amber-soft:#3A2D12; --green:#4BC48B; --green-soft:#12301F;
+  --paper:#151B2A; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0D111C; --surface:#151B2A; --sunk:#111623; --ink:#E5E9F3; --muted:#9AA3B9; --faint:#6E7790; --line:#262E44;
+  --accent:#8299FF; --accent-soft:#1D2547; --accent-ink:#0D111C;
+  --red:#F2685D; --red-soft:#3A1B1C; --amber:#EFB23C; --amber-soft:#3A2D12; --green:#4BC48B; --green-soft:#12301F;
+  --paper:#151B2A; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:.005em}
+h1{font-size:28px;font-weight:700;line-height:1.15}
+h2{font-size:18px;font-weight:600}
+h3{font-size:15px;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+.label{font-family:var(--f-display);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+.app{display:grid;grid-template-columns:212px minmax(0,1fr);gap:24px;max-width:1360px;margin:0 auto;align-items:start}
+.side{position:sticky;top:max(16px,env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:30px;height:30px;border-radius:6px;background:var(--ink);display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:6px}
+.brand-mark i{border-radius:2px;display:block}
+.brand-mark i:nth-child(1){background:var(--red)}.brand-mark i:nth-child(2){background:var(--amber)}
+.brand-mark i:nth-child(3){background:var(--green)}.brand-mark i:nth-child(4){background:var(--bg)}
+.brand b{font-family:var(--f-display);font-size:18px;font-weight:700;letter-spacing:.01em}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:var(--ink);text-decoration:none;font-weight:500}
+.nav a:hover{background:var(--surface)}
+.nav a[aria-current="page"]{background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);font-weight:600}
+.nav .count{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.mode{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+.mode b{display:block;color:var(--ink);font-weight:600}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  padding:7px 12px;border-radius:6px;font-weight:500;cursor:pointer;white-space:nowrap;text-decoration:none;line-height:1.3}
+.btn:hover{border-color:var(--faint)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink);background:var(--sunk)}
+.btn.danger{color:var(--red)}
+.btn.danger.armed{background:var(--red);border-color:var(--red);color:#fff}
+.btn.sm{padding:4px 8px;font-size:12.5px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+main{min-width:0;display:flex;flex-direction:column;gap:20px}
+.head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-end}
+.head .sub{margin-top:4px;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.banner{border:1px dashed var(--faint);border-radius:var(--r);padding:10px 14px;color:var(--muted);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.banner b{color:var(--ink)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi .big{font-family:var(--f-mono);font-size:24px;font-weight:600;letter-spacing:-.01em}
+.kpi .big.rag{font-size:20px;white-space:nowrap}
+.kpi .note{font-size:12.5px;color:var(--muted)}
+.ragbar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--sunk);gap:2px}
+.ragbar span{display:block}
+
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 8px 2px 6px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:8px;height:8px;border-radius:2px;background:currentColor}
+.pill.r{color:var(--red);background:var(--red-soft)} .pill.a{color:var(--amber);background:var(--amber-soft)} .pill.g{color:var(--green);background:var(--green-soft)}
+.pill.lg{font-size:14px;padding:5px 12px 5px 9px}.pill.lg::before{width:10px;height:10px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:2px;flex:none}
+.dot.r{background:var(--red)}.dot.a{background:var(--amber)}.dot.g{background:var(--green)}
+.chip{display:inline-block;font-size:12px;padding:1px 7px;border-radius:4px;background:var(--sunk);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+
+.attn{display:flex;flex-direction:column}
+.attn a{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}
+.attn a:first-child{border-top:0;padding-top:0}
+.attn a:hover .t{color:var(--accent)}
+.attn .t{font-weight:600}
+.attn ul{margin:4px 0 0;padding:0;list-style:none;color:var(--muted);font-size:13px}
+.attn li{display:flex;gap:8px;align-items:baseline}
+.attn li .dot{transform:translateY(-1px)}
+
+.tablewrap{overflow-x:auto;margin:0 -18px;padding:0 18px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-family:var(--f-display);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:6px 10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+tbody tr.link{cursor:pointer}
+tbody tr.link:hover td{background:var(--sunk)}
+.why{font-size:12.5px;color:var(--muted);max-width:36ch}
+.prog{display:flex;align-items:center;gap:8px;min-width:110px}
+.prog .track{flex:1;height:6px;background:var(--sunk);border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.prog .fill{height:100%;background:var(--accent)}
+
+.budget{display:flex;flex-direction:column;gap:14px}
+.brow{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr) auto;gap:12px;align-items:center}
+.brow .nm{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btrack{position:relative;height:18px;background:var(--sunk);border-radius:3px}
+.bspent{position:absolute;left:0;top:3px;bottom:3px;background:var(--accent);border-radius:2px}
+.bfc{position:absolute;left:0;top:0;bottom:0;border:1.5px dashed var(--muted);border-radius:3px}
+.bfc.over{border-color:var(--red)}
+.bbud{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg-sw{width:14px;height:8px;border-radius:2px;display:inline-block}
+
+.grid2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:20px;min-width:0}
+
+.whybox{display:flex;flex-direction:column;gap:10px}
+.reason{display:grid;grid-template-columns:auto 92px minmax(0,1fr);gap:10px;align-items:baseline;font-size:13.5px}
+.reason .area{font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.checks{font-size:12.5px;color:var(--muted);margin-top:4px}
+
+form{margin:0}
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+.fgrid .full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label,.field .lab{font-size:12.5px;font-weight:500;color:var(--muted)}
+.field .hint{font-size:12px;color:var(--faint)}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+input:hover,select:hover,textarea:hover{border-color:var(--faint)}
+textarea{resize:vertical;min-height:72px}
+input[aria-invalid=true]{border-color:var(--red)}
+.err{color:var(--red);font-size:12.5px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+fieldset{border:0;padding:0;margin:0;min-width:0}
+.section-title{display:flex;align-items:baseline;gap:10px;margin:6px 0 2px}
+
+.ms{display:flex;flex-direction:column}
+.ms-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.ms-item:first-child{border-top:0}
+.ms-item.done .nm{text-decoration:line-through;color:var(--faint)}
+.late{color:var(--red);font-weight:500}
+.msrows{display:flex;flex-direction:column;gap:8px}
+.msrow{display:grid;grid-template-columns:minmax(0,1fr) 160px auto;gap:8px}
+
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:transparent;border-radius:999px;padding:3px 10px;font-size:12.5px;cursor:pointer;color:var(--muted)}
+.tab[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.raidform{display:grid;grid-template-columns:120px minmax(0,1fr) 130px 140px 120px auto;gap:8px;align-items:end;padding:12px;background:var(--sunk);border-radius:6px;margin-bottom:12px}
+.raidform .wide{grid-column:2/-2}
+.sev{font-size:12px;font-weight:600}
+.sev.Critical{color:var(--red)}.sev.High{color:var(--red)}.sev.Medium{color:var(--amber)}.sev.Low{color:var(--muted)}
+tr.closed td{color:var(--faint)}
+tr.closed td .t{text-decoration:line-through}
+
+.icards{display:flex;flex-direction:column;gap:12px}
+.icard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;grid-template-columns:40px minmax(0,1fr) 150px;gap:16px;align-items:start}
+.icard .rank{font-family:var(--f-mono);font-size:13px;color:var(--faint);padding-top:4px}
+.icard .score{text-align:right}
+.icard .score .big{font-family:var(--f-mono);font-size:30px;font-weight:600;line-height:1}
+.crit{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
+.crit div{font-size:11.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.crit .bar{height:5px;background:var(--sunk);border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.crit .bar i{display:block;height:100%;background:var(--accent)}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;width:max-content;max-width:100%}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.seg span{display:block;padding:5px 11px;font-family:var(--f-mono);font-size:13px;border-left:1px solid var(--line)}
+.seg label:first-child span{border-left:0}
+.seg input:checked+span{background:var(--accent);color:var(--accent-ink)}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:-2px}
+.critgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+
+.paper{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:28px;max-width:820px;font-size:14px}
+.paper h2{font-size:22px}
+.rp-proj{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+.rp-proj h3{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:16px}
+.rp-meta{color:var(--muted);font-size:13px;margin:4px 0 8px}
+.rp-proj ul{margin:4px 0 8px;padding-left:18px}
+.rp-k{font-weight:600;font-size:13px;margin-top:8px}
+textarea.copybox{font-family:var(--f-mono);font-size:12px;min-height:220px}
+
+.empty{text-align:center;padding:48px 16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.empty p{max-width:52ch;color:var(--muted)}
+.skel{height:14px;border-radius:4px;background:var(--sunk)}
+.localbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);
+  padding:10px 16px;border-radius:6px;font-size:13.5px;max-width:min(520px,calc(100vw - 32px));box-shadow:0 6px 24px rgba(0,0,0,.2);z-index:20}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (max-width:1080px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}
+  .raidform{grid-template-columns:repeat(2,minmax(0,1fr))}.raidform .wide{grid-column:1/-1}}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr);gap:16px}
+  .side{position:static;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+  .nav{flex-direction:row;overflow-x:auto;width:100%;gap:4px;padding-bottom:2px}
+  .nav a{white-space:nowrap}
+  .mode{display:none}
+  .brow{grid-template-columns:minmax(0,1fr) auto}.brow .btrack{grid-column:1/-1;grid-row:2}
+  .icard{grid-template-columns:minmax(0,1fr) auto}.icard .rank{display:none}
+  .crit{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:520px){
+  .kpis{grid-template-columns:minmax(0,1fr)}.fgrid{grid-template-columns:minmax(0,1fr)}
+  .msrow{grid-template-columns:minmax(0,1fr) auto}.msrow input[type=date]{grid-column:1;grid-row:2}
+  .raidform{grid-template-columns:minmax(0,1fr)}
+  .reason{grid-template-columns:auto minmax(0,1fr)}.reason .area{grid-column:2}.reason .txt{grid-column:2}
+  .paper{padding:18px}
+  h1{font-size:24px}
+}
+@media (prefers-reduced-motion:no-preference){.btn,.nav a,.tab{transition:background-color .12s,border-color .12s,color .12s}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div><b>Delivery Desk</b></div>
+    <nav class="nav" id="nav" aria-label="Sections"></nav>
+    <a class="btn primary" href="#new" id="newbtn">New project</a>
+    <div class="mode" id="mode"></div>
+  </aside>
+  <main id="main" aria-live="polite"></main>
+</div>
+<div id="toast" role="status" hidden></div>
+
+<script id="core">
+/* ---------- Pure logic: health engine, intake scoring, report model. No DOM. ---------- */
+var DD = (function(){
+  'use strict';
+  var DEFAULT_RULES = {
+    scheduleAmber:10, scheduleRed:20,      // pts behind: time elapsed minus % complete
+    burnAmber:10, burnRed:20,              // pts: % budget spent minus % complete (or % of period, for operations)
+    forecastAmber:5, forecastRed:10,       // % forecast over budget
+    overdueMsAmber:1, overdueMsRed:2,      // count of overdue milestones
+    highOpenAmber:2, criticalOpenRed:1,    // open risks/issues by severity
+    overdueActionsAmber:3,                 // overdue open actions
+    staleDays:14,                          // days since last update
+    weights:{strategic:25, value:30, urgency:15, risk:15, effort:15}
+  };
+  var CRITERIA = [
+    {k:'strategic', label:'Strategic fit', hint:'How closely it supports this year’s priorities'},
+    {k:'value', label:'Business value', hint:'Revenue, savings or customer impact'},
+    {k:'urgency', label:'Urgency', hint:'Cost of waiting another quarter'},
+    {k:'risk', label:'Risk & compliance', hint:'Risk it removes or obligation it meets'},
+    {k:'effort', label:'Effort', hint:'1 = small, 5 = very large (lower scores higher)'}
+  ];
+  var STAGES = ['Initiate','Plan','Execute','Closing','Closed'];
+  var RAID_TYPES = ['Risk','Action','Issue','Decision'];
+  var SEVERITIES = ['Low','Medium','High','Critical'];
+
+  function num(v){ var n = Number(v); return isFinite(n) ? n : 0; }
+  function clamp(v,a,b){ return Math.min(b, Math.max(a, v)); }
+  function parseDate(s){
+    if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    var p = s.split('-').map(Number), d = new Date(p[0], p[1]-1, p[2]);
+    return (d.getMonth() === p[1]-1) ? d : null;
+  }
+  function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function addDays(d,n){ var x = new Date(d); x.setDate(x.getDate()+n); return x; }
+  function daysBetween(a,b){ return Math.round((startOfDay(b) - startOfDay(a)) / 864e5); }
+  var DF = new Intl.DateTimeFormat('en-NZ',{day:'numeric',month:'short',year:'numeric'});
+  function fmtDate(d){ var x = d instanceof Date ? d : parseDate(d); return x ? DF.format(x) : '—'; }
+  var NZD = new Intl.NumberFormat('en-NZ',{style:'currency',currency:'NZD',maximumFractionDigits:0});
+  function nzd(v){ return NZD.format(num(v)); }
+  function nzdShort(v){ v = num(v); var a = Math.abs(v);
+    if (a >= 1e6) return (v<0?'-':'')+'$'+(a/1e6).toFixed(a>=1e7?0:1)+'M';
+    if (a >= 1e3) return (v<0?'-':'')+'$'+Math.round(a/1e3)+'k';
+    return nzd(v); }
+  function plural(n, one, many){ return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+  function mergeRules(r){
+    var out = JSON.parse(JSON.stringify(DEFAULT_RULES));
+    if (r && typeof r === 'object'){
+      Object.keys(DEFAULT_RULES).forEach(function(k){
+        if (k === 'weights') return;
+        if (r[k] !== undefined && isFinite(Number(r[k])) && Number(r[k]) >= 0) out[k] = Number(r[k]);
+      });
+      if (r.weights && typeof r.weights === 'object') CRITERIA.forEach(function(c){
+        var v = Number(r.weights[c.k]); if (isFinite(v) && v >= 0) out.weights[c.k] = v;
+      });
+    }
+    return out;
+  }
+  var LV = ['g','a','r'], LV_NAME = ['Green','Amber','Red'];
+
+  /* Health: every rule that fires adds a plain-English reason; overall = worst. */
+  function health(p, rules, now){
+    rules = rules || DEFAULT_RULES;
+    var t = startOfDay(now || new Date());
+    var reasons = [], checks = [];
+    function add(lvl, area, text){ reasons.push({lvl:lvl, area:area, text:text}); }
+    var closed = p.stage === 'Closed';
+    var ops = p.type === 'Operations';
+    var start = parseDate(p.start), end = parseDate(p.end);
+    var pc = clamp(num(p.percentComplete), 0, 100);
+    var elapsed = (start && end && end > start) ? clamp((t - start) / (end - start), 0, 1) * 100 : null;
+    if (closed) return {lvl:0, reasons:[], checks:['Closed — health checks no longer run'], elapsed:elapsed};
+
+    // Schedule
+    if (!ops){
+      checks.push('schedule');
+      if (end && t > end && pc < 100) add(2, 'Schedule', 'Past its end date (' + fmtDate(end) + ') at ' + Math.round(pc) + '% complete');
+      else if (elapsed !== null){
+        var gap = elapsed - pc;
+        var msg = Math.round(pc) + '% complete with ' + Math.round(elapsed) + '% of the timeline used (' + Math.round(gap) + ' pts behind)';
+        if (gap >= rules.scheduleRed) add(2, 'Schedule', msg);
+        else if (gap >= rules.scheduleAmber) add(1, 'Schedule', msg);
+      }
+    }
+    // Milestones
+    checks.push('milestones');
+    var od = (p.milestones || []).filter(function(m){ var d = parseDate(m.due); return !m.done && d && d < t; });
+    if (od.length){
+      var names = od.slice(0,2).map(function(m){ return '“' + m.name + '” (due ' + fmtDate(m.due) + ')'; }).join(', ') + (od.length > 2 ? ' +' + (od.length-2) + ' more' : '');
+      var mtext = plural(od.length, 'milestone') + ' overdue: ' + names;
+      if (rules.overdueMsRed > 0 && od.length >= rules.overdueMsRed) add(2, 'Milestones', mtext);
+      else if (rules.overdueMsAmber > 0 && od.length >= rules.overdueMsAmber) add(1, 'Milestones', mtext);
+    }
+    // Budget
+    var b = num(p.budget), sp = num(p.spent), fc = num(p.forecast) || sp;
+    if (b > 0){
+      checks.push('budget');
+      var ref = ops ? elapsed : pc;
+      if (ref !== null){
+        var burn = sp / b * 100, bgap = burn - ref;
+        var btext = 'Spent ' + Math.round(burn) + '% of budget at ' + Math.round(ref) + (ops ? '% of the period' : '% complete') + ' (' + Math.round(bgap) + ' pts ahead of progress)';
+        if (bgap >= rules.burnRed) add(2, 'Budget', btext);
+        else if (bgap >= rules.burnAmber) add(1, 'Budget', btext);
+      }
+      var over = (fc - b) / b * 100;
+      var ftext = 'Forecast ' + nzd(fc) + ' is ' + (Math.round(over*10)/10) + '% over the ' + nzd(b) + ' budget';
+      if (over >= rules.forecastRed) add(2, 'Budget', ftext);
+      else if (over >= rules.forecastAmber) add(1, 'Budget', ftext);
+    }
+    // RAID
+    checks.push('RAID');
+    var open = (p.raid || []).filter(function(x){ return x.status !== 'Closed'; });
+    var ri = function(x){ return x.type === 'Risk' || x.type === 'Issue'; };
+    var crit = open.filter(function(x){ return ri(x) && x.severity === 'Critical'; });
+    if (rules.criticalOpenRed > 0 && crit.length >= rules.criticalOpenRed)
+      add(2, 'RAID', plural(crit.length, 'critical ' + crit[0].type.toLowerCase(), 'critical risks/issues') + ' open: “' + crit[0].title + '”');
+    var high = open.filter(function(x){ return ri(x) && x.severity === 'High'; });
+    if (rules.highOpenAmber > 0 && high.length >= rules.highOpenAmber)
+      add(1, 'RAID', plural(high.length, 'high-severity risk/issue', 'high-severity risks/issues') + ' open');
+    var oa = open.filter(function(x){ var d = parseDate(x.due); return x.type === 'Action' && d && d < t; });
+    if (rules.overdueActionsAmber > 0 && oa.length >= rules.overdueActionsAmber)
+      add(1, 'RAID', plural(oa.length, 'action') + ' overdue');
+    // Reporting freshness
+    checks.push('freshness');
+    var upd = p.updated ? new Date(p.updated) : null;
+    if (!upd || isNaN(upd)) add(1, 'Reporting', 'No status update recorded yet');
+    else if (rules.staleDays > 0) { var age = daysBetween(upd, t); if (age > rules.staleDays) add(1, 'Reporting', 'Last updated ' + age + ' days ago — the status may be out of date'); }
+
+    reasons.sort(function(a,b){ return b.lvl - a.lvl; });
+    return {lvl: reasons.length ? reasons[0].lvl : 0, reasons:reasons, checks:checks, elapsed:elapsed};
+  }
+
+  /* Intake score 0-100: weighted, effort inverted. */
+  function intakeScore(it, rules){
+    var w = (rules || DEFAULT_RULES).weights, tot = 0, s = 0, parts = {};
+    CRITERIA.forEach(function(c){
+      var wt = num(w[c.k]); tot += wt;
+      var v = clamp(Math.round(num(it.scores && it.scores[c.k]) || 3), 1, 5);
+      var frac = c.k === 'effort' ? (5 - v) / 4 : (v - 1) / 4;
+      parts[c.k] = {v:v, frac:frac}; s += wt * frac;
+    });
+    return {score: tot ? Math.round(s / tot * 100) : 0, parts:parts};
+  }
+
+  function nextCode(projects, type){
+    var pre = type === 'Operations' ? 'OPS-' : 'PRJ-', base = type === 'Operations' ? 200 : 100, max = base;
+    (projects || []).forEach(function(p){
+      var m = /^(PRJ|OPS)-(\d+)$/.exec(p.code || '');
+      if (m && m[1] + '-' === pre) max = Math.max(max, Number(m[2]));
+    });
+    return pre + String(max + 1).padStart(3, '0');
+  }
+  function raidRef(item){ return (item.type ? item.type[0] : '?') + '-' + String(item.seq || 0).padStart(2, '0'); }
+
+  function weekEnding(now){ var t = startOfDay(now || new Date()); return addDays(t, (5 - t.getDay() + 7) % 7); }
+
+  /* Report model shared by the on-screen preview, email copy and text copy. */
+  function reportModel(projects, rules, now, opts){
+    opts = opts || {};
+    var t = startOfDay(now || new Date()), we = weekEnding(t), soon = addDays(t, 14), weekAgo = addDays(t, -7);
+    var list = (projects || []).filter(function(p){
+      if (opts.scope && opts.scope !== 'all') return p.id === opts.scope;
+      return opts.includeClosed || p.stage !== 'Closed';
+    }).map(function(p){
+      var h = health(p, rules, t);
+      var open = (p.raid || []).filter(function(x){ return x.status !== 'Closed'; });
+      var sevRank = function(x){ return SEVERITIES.indexOf(x.severity); };
+      return {
+        p:p, h:h,
+        risks: open.filter(function(x){ return x.type === 'Risk' || x.type === 'Issue'; })
+                   .sort(function(a,b){ return sevRank(b) - sevRank(a); }).slice(0, 4),
+        actions: open.filter(function(x){ return x.type === 'Action'; })
+                   .sort(function(a,b){ return String(a.due||'9').localeCompare(String(b.due||'9')); }).slice(0, 4),
+        decisions: (p.raid || []).filter(function(x){ var c = parseDate(x.created); return x.type === 'Decision' && c && c >= weekAgo; }),
+        upcoming: (p.milestones || []).filter(function(m){ var d = parseDate(m.due); return !m.done && d && d >= t && d <= soon; })
+                   .sort(function(a,b){ return a.due.localeCompare(b.due); }),
+        overdue: (p.milestones || []).filter(function(m){ var d = parseDate(m.due); return !m.done && d && d < t; })
+      };
+    }).sort(function(a,b){ return b.h.lvl - a.h.lvl || String(a.p.code).localeCompare(String(b.p.code)); });
+    var counts = [0,0,0], bud = 0, spent = 0, fc = 0;
+    list.forEach(function(x){ counts[x.h.lvl]++; bud += num(x.p.budget); spent += num(x.p.spent); fc += num(x.p.forecast) || num(x.p.spent); });
+    return {weekEnding:we, generated:t, items:list, counts:counts, budget:bud, spent:spent, forecast:fc};
+  }
+
+  function reportText(m){
+    var L = [];
+    var line = function(s){ L.push(s); };
+    line('WEEKLY STATUS REPORT — week ending ' + fmtDate(m.weekEnding));
+    line('');
+    if (m.items.length > 1){
+      line('Portfolio: ' + plural(m.items.length, 'item') + ' · ' + m.counts[2] + ' Red · ' + m.counts[1] + ' Amber · ' + m.counts[0] + ' Green');
+      var v = m.forecast - m.budget;
+      line('Budget: ' + nzd(m.budget) + ' approved · ' + nzd(m.spent) + ' spent · forecast ' + nzd(m.forecast) + ' (' + (v >= 0 ? '+' : '') + nzd(v) + ')');
+      line('');
+    }
+    m.items.forEach(function(x){
+      var p = x.p;
+      line('== ' + (p.code || '') + ' · ' + p.name + ' — ' + LV_NAME[x.h.lvl].toUpperCase() + ' ==');
+      line('Owner: ' + (p.owner || '—') + ' | Stage: ' + (p.stage || '—') + (p.type === 'Operations' ? '' : ' | Progress: ' + Math.round(num(p.percentComplete)) + '%') + ' | End: ' + fmtDate(p.end));
+      if (x.h.reasons.length){ line('Why:'); x.h.reasons.forEach(function(r){ line('  - [' + r.area + '] ' + r.text); }); }
+      else line('Why: all health checks pass.');
+      if (num(p.budget) > 0) line('Budget: ' + nzd(p.spent) + ' spent of ' + nzd(p.budget) + ' · forecast ' + nzd(num(p.forecast) || num(p.spent)));
+      if (p.summary) line('This week: ' + p.summary);
+      if (p.nextSteps) line('Next week: ' + p.nextSteps);
+      if (x.risks.length){ line('Top risks & issues:'); x.risks.forEach(function(r){ line('  - ' + raidRef(r) + ' ' + r.type + ' (' + r.severity + '): ' + r.title + (r.owner ? ' — ' + r.owner : '')); }); }
+      if (x.actions.length){ line('Open actions:'); x.actions.forEach(function(r){ line('  - ' + raidRef(r) + ' ' + r.title + (r.owner ? ' — ' + r.owner : '') + (r.due ? ', due ' + fmtDate(r.due) : '')); }); }
+      if (x.decisions.length){ line('Decisions this week:'); x.decisions.forEach(function(r){ line('  - ' + r.title); }); }
+      if (x.overdue.length || x.upcoming.length){
+        line('Milestones:');
+        x.overdue.forEach(function(ms){ line('  - OVERDUE ' + ms.name + ' (was due ' + fmtDate(ms.due) + ')'); });
+        x.upcoming.forEach(function(ms){ line('  - ' + ms.name + ' — ' + fmtDate(ms.due)); });
+      }
+      line('');
+    });
+    return L.join('\n').trim() + '\n';
+  }
+
+  function sampleData(now){
+    var t = startOfDay(now || new Date());
+    var ago = function(n){ return new Date(t.getTime() - n*864e5 + 9*36e5).toISOString(); };
+    var d = function(n){ return iso(addDays(t, n)); };
+    var r = function(type, seq, title, sev, owner, due, status, created, note){
+      return {id:type[0].toLowerCase()+seq+Math.random().toString(36).slice(2,6), type:type, seq:seq, title:title, severity:sev||'Medium', owner:owner||'', due:due||'', status:status||'Open', created:created||d(-20), note:note||''};
+    };
+    var projects = [
+      {id:'prj101', code:'PRJ-101', name:'Xero to Power BI finance reporting', type:'Project', stage:'Execute', owner:'Aroha Ngata', sponsor:'Finance Director',
+       objective:'Month-end reporting in one click instead of three days of spreadsheets.', start:d(-85), end:d(52), budget:48000, spent:31500, forecast:52000, percentComplete:55,
+       summary:'Finance data model signed off. Revenue and cash-flow pages built; GST page in progress.', nextSteps:'Start UAT prep with the finance team; resolve entity mapping.',
+       updated:ago(2),
+       milestones:[{id:'m1',name:'Data model sign-off',due:d(-39),done:true},{id:'m2',name:'UAT starts',due:d(13),done:false},{id:'m3',name:'Go-live',due:d(45),done:false}],
+       raid:[r('Risk',1,'Xero API rate limits slow the 5-year history load','High','Aroha Ngata','', 'Open', d(-40)),
+             r('Issue',1,'Chart of accounts mapped differently across the two entities','Medium','Finance team',d(7),'Open',d(-12)),
+             r('Action',1,'Confirm GST reporting needs with external accountant','Medium','Aroha Ngata',d(-7),'Open',d(-15)),
+             r('Decision',1,'Use Power BI Pro licences, not Premium','Low','Finance Director','', 'Closed', d(-3))]},
+      {id:'prj102', code:'PRJ-102', name:'Warehouse barcode scanning rollout', type:'Project', stage:'Execute', owner:'Sam Patel', sponsor:'Operations Manager',
+       objective:'Cut picking errors by 60% at the Penrose and Hamilton sites.', start:d(-118), end:d(32), budget:120000, spent:104000, forecast:138000, percentComplete:60,
+       summary:'Penrose pilot blocked by scanner firmware. Vendor escalation raised.', nextSteps:'Vendor to supply firmware patch; re-plan pilot date.',
+       updated:ago(1),
+       milestones:[{id:'m1',name:'Handheld devices delivered',due:d(-42),done:true},{id:'m2',name:'Penrose pilot live',due:d(-25),done:false},{id:'m3',name:'Hamilton go-live',due:d(28),done:false}],
+       raid:[r('Issue',1,'Scanner firmware incompatible with WMS v4','Critical','Scanner vendor',d(3),'Open',d(-26)),
+             r('Risk',1,'Peak season freeze from 1 December leaves no slack','High','Sam Patel','', 'Open', d(-30)),
+             r('Action',1,'Get revised delivery plan from vendor','High','Sam Patel',d(2),'Open',d(-5)),
+             r('Decision',1,'Delay Hamilton until Penrose pilot passes','Medium','Operations Manager','', 'Closed', d(-2))]},
+      {id:'prj103', code:'PRJ-103', name:'Customer portal refresh', type:'Project', stage:'Plan', owner:'Mere Thompson', sponsor:'Head of Customer',
+       objective:'Self-service order tracking to cut “where is my order” calls.', start:d(-22), end:d(150), budget:85000, spent:6000, forecast:85000, percentComplete:8,
+       summary:'Discovery interviews done with 12 customers. Requirements draft circulated.', nextSteps:'Prioritise backlog; confirm design partner.',
+       updated:ago(3),
+       milestones:[{id:'m1',name:'Requirements signed off',due:d(17),done:false},{id:'m2',name:'Design complete',due:d(60),done:false},{id:'m3',name:'Launch',due:d(145),done:false}],
+       raid:[r('Risk',1,'Lead UX designer on leave for most of December','Medium','Mere Thompson','', 'Open', d(-10)),
+             r('Decision',1,'Build on the existing Shopify Plus storefront','Low','Head of Customer','', 'Closed', d(-4))]},
+      {id:'ops201', code:'OPS-201', name:'IT service desk — BAU FY27', type:'Operations', stage:'Execute', owner:'Liam Chen', sponsor:'COO',
+       objective:'Run the internal service desk within the FY27 budget and SLA.', start:'2026-04-01', end:'2027-03-31', budget:210000, spent:118000, forecast:214000, percentComplete:0,
+       summary:'SLA at 91% (target 95%). Backlog still above 120 tickets.', nextSteps:'Weekend backlog blitz; start M365 admin cross-training.',
+       updated:ago(4),
+       milestones:[{id:'m1',name:'Half-year service review',due:'2026-10-02',done:true},{id:'m2',name:'Contract renewal decision',due:'2027-01-29',done:false}],
+       raid:[r('Issue',1,'Ticket backlog above 120 for three weeks','High','Liam Chen',d(10),'Open',d(-21)),
+             r('Risk',1,'Only one admin can manage the M365 tenant','High','Liam Chen','', 'Open', d(-50)),
+             r('Action',1,'Book cross-training for a second M365 admin','Medium','Liam Chen',d(14),'Open',d(-6))]},
+      {id:'prj104', code:'PRJ-104', name:'Health & safety incident app', type:'Project', stage:'Closed', owner:'Aroha Ngata', sponsor:'COO',
+       objective:'Replace paper incident forms with a mobile app.', start:'2026-05-04', end:'2026-09-25', budget:30000, spent:29100, forecast:29100, percentComplete:100,
+       summary:'Closed. Benefits review booked for January.', nextSteps:'', updated:ago(26),
+       milestones:[{id:'m1',name:'Go-live',due:'2026-09-18',done:true}], raid:[]}
+    ];
+    var intake = [
+      {id:'in1', title:'Automate supplier invoice capture into Xero', requester:'Finance', description:'Remove manual keying of ~400 bills a month.', estBudget:18000,
+       scores:{strategic:4,value:4,urgency:3,risk:2,effort:2}, status:'Under review', created:d(-9)},
+      {id:'in2', title:'Move file shares to SharePoint', requester:'IT', description:'Retire the on-premise file server before its warranty ends.', estBudget:42000,
+       scores:{strategic:3,value:3,urgency:4,risk:4,effort:4}, status:'New', created:d(-4)},
+      {id:'in3', title:'Privacy Act breach-reporting workflow', requester:'Legal & Risk', description:'Meet the Privacy Act 2020 notifiable-breach process.', estBudget:12000,
+       scores:{strategic:4,value:2,urgency:4,risk:5,effort:2}, status:'New', created:d(-2)},
+      {id:'in4', title:'Stocktake mobile app', requester:'Warehouse', description:'Replace clipboard stocktakes.', estBudget:35000,
+       scores:{strategic:2,value:3,urgency:2,risk:1,effort:4}, status:'New', created:d(-15)}
+    ];
+    return {projects:projects, intake:intake};
+  }
+
+  return {DEFAULT_RULES:DEFAULT_RULES, CRITERIA:CRITERIA, STAGES:STAGES, RAID_TYPES:RAID_TYPES, SEVERITIES:SEVERITIES, LV:LV, LV_NAME:LV_NAME,
+    num:num, clamp:clamp, parseDate:parseDate, iso:iso, startOfDay:startOfDay, addDays:addDays, daysBetween:daysBetween, fmtDate:fmtDate,
+    nzd:nzd, nzdShort:nzdShort, plural:plural, mergeRules:mergeRules, health:health, intakeScore:intakeScore, nextCode:nextCode, raidRef:raidRef,
+    weekEnding:weekEnding, reportModel:reportModel, reportText:reportText, sampleData:sampleData};
+})();
+if (typeof module !== 'undefined') module.exports = DD;
+</script>
+
+<script>
+/* ---------- Browser storage for standalone use (opened as a file or hosted outside Claude) ---------- */
+var LOCAL = {
+  key:null, ok:null,
+  read:function(){ try { var s = window.localStorage.getItem(this.key); return s ? JSON.parse(s) : null; } catch(e){ return null; } },
+  write:function(obj){ try { window.localStorage.setItem(this.key, JSON.stringify(obj)); this.ok = true; } catch(e){ this.ok = false; } return this.ok; },
+  fileSaver:function(){ return {save:function(o){ return new Promise(function(res, rej){
+    try {
+      var blob = new Blob([o.data], {type:(o.type || 'text/plain') + ';charset=utf-8'}), url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = o.filename; a.rel = 'noopener'; a.style.display = 'none'; document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1500); res({status:'saved'});
+    } catch(e){ rej({code:'unavailable'}); }
+  }); }}; },
+  readFile:function(file){ return new Promise(function(res, rej){
+    if (!file) return rej(new Error('Choose a backup file first.'));
+    if (file.size > 5e6) return rej(new Error('That file is too large to be a backup.'));
+    var r = new FileReader();
+    r.onload = function(){ try { res(JSON.parse(r.result)); } catch(e){ rej(new Error('That file isn’t a valid backup.')); } };
+    r.onerror = function(){ rej(new Error('Couldn’t read that file.')); };
+    r.readAsText(file);
+  }); },
+  cleanList:function(arr){ return (Array.isArray(arr) ? arr : []).filter(function(x){ return x && typeof x === 'object' && !Array.isArray(x) && typeof x.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(x.id); }); },
+  slug:function(s){ return String(s || 'backup').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); },
+  banner:function(armed, canBackup){
+    return '<div class="banner localbar"><span><b>Saved in this browser.</b> Changes stay on this computer only' +
+      (LOCAL.ok === false ? '. <b>This browser is blocking storage, so back up before you close the page.</b>' : '. Back up to keep a copy or move it to another computer.') + '</span><span class="row">' +
+      (canBackup ? '<button class="btn sm" data-act="data-backup">Back up</button>' : '') +
+      '<label class="btn sm" for="data-restore">Restore</label><input type="file" id="data-restore" accept=".json,application/json" data-act="data-restore" class="sr">' +
+      '<button class="btn sm' + (armed === 'reset:sample' ? ' danger armed' : ' ghost') + '" data-act="data-reset" data-v="sample" data-arm>' + (armed === 'reset:sample' ? 'Confirm: replace with sample' : 'Load sample') + '</button>' +
+      '<button class="btn sm danger' + (armed === 'reset:empty' ? ' armed' : ' ghost') + '" data-act="data-reset" data-v="empty" data-arm>' + (armed === 'reset:empty' ? 'Confirm: delete everything' : 'Start empty') + '</button></span></div>';
+  }
+};
+</script>
+<script>
+(function(){
+'use strict';
+var D = DD, $ = function(s, r){ return (r || document).querySelector(s); };
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function nowIso(){ return new Date().toISOString(); }
+function today(){ return D.startOfDay(new Date()); }
+function pill(lvl, big){ return '<span class="pill ' + D.LV[lvl] + (big ? ' lg' : '') + '">' + D.LV_NAME[lvl] + '</span>'; }
+
+var S = {
+  projects:[], intake:[], rules:D.mergeRules(null), mode:'loading', canWrite:true, wroteOnce:false,
+  ready:{projects:false, intake:false, rules:false}, dirty:false, pending:false,
+  filter:'All', hideClosed:true, raidFilter:'All', showClosedRaid:false, showDoneIntake:false,
+  reportScope:'all', reportClosed:false, prefill:null, armed:null, downloads:null, newMsRows:3, showIntakeForm:false
+};
+
+/* ---------- Storage: live (shared db) or demo (in-page memory) ---------- */
+var DB = null, chains = {};
+function queue(path, fn){ var p = (chains[path] || Promise.resolve()).catch(function(){}).then(fn); chains[path] = p; return p; }
+function retryOnce(fn){ return fn().catch(function(e){
+  if (e && e.code === 'unavailable') return new Promise(function(r){ setTimeout(r, 400 + Math.random()*600); }).then(fn);
+  throw e; }); }
+function onWriteError(e){
+  var c = e && e.code;
+  if (c === 'invalid_argument' && !S.wroteOnce){ S.canWrite = false; toast('You can view this portfolio but not change it. Ask the owner for Contributor access.'); render(); }
+  else if (c === 'quota_exceeded') toast('Storage is full. Delete closed projects or old intake requests, then try again.');
+  else if (c === 'invalid_argument') toast('That change is too large to save. Shorten long notes and try again.');
+  else toast('Couldn’t save. Check your connection and try again.');
+}
+function upsertLocal(list, id, data){ var i = list.findIndex(function(x){ return x.id === id; }); var rec = Object.assign({}, data, {id:id}); if (i >= 0) list[i] = rec; else list.push(rec); }
+function removeLocal(list, id){ var i = list.findIndex(function(x){ return x.id === id; }); if (i >= 0) list.splice(i, 1); }
+
+function save(coll, id, data){
+  var body = clone(data); delete body.id;
+  upsertLocal(coll === 'projects' ? S.projects : S.intake, id, body);
+  if (S.mode !== 'live'){ persist(); return Promise.resolve(true); }
+  return queue(coll + '/' + id, function(){ return retryOnce(function(){ return DB.collection(coll).doc(id).set(body); }); })
+    .then(function(){ S.wroteOnce = true; return true; }, function(e){ onWriteError(e); return false; });
+}
+function remove(coll, id){
+  removeLocal(coll === 'projects' ? S.projects : S.intake, id);
+  if (S.mode !== 'live'){ persist(); return Promise.resolve(true); }
+  return queue(coll + '/' + id, function(){ return retryOnce(function(){ return DB.collection(coll).doc(id).delete(); }); })
+    .then(function(){ return true; }, function(e){ onWriteError(e); return false; });
+}
+function saveRules(r){
+  S.rules = D.mergeRules(r);
+  if (S.mode !== 'live'){ persist(); return Promise.resolve(true); }
+  return queue('config/rules', function(){ return retryOnce(function(){ return DB.doc('config/rules').set(clone(S.rules)); }); })
+    .then(function(){ S.wroteOnce = true; return true; }, function(e){ onWriteError(e); return false; });
+}
+
+function refresh(){
+  if (S.dirty){ S.pending = true; renderNav(); return; }
+  render();
+}
+
+var APP = 'Delivery Desk';
+function snapshot(){ return {app:APP, v:1, saved:new Date().toISOString(), data:{projects:S.projects, intake:S.intake}, docs:{rules:S.rules}}; }
+function persist(){
+  if (S.mode !== 'local') return;
+  var was = LOCAL.ok; LOCAL.write(snapshot());
+  if (was !== false && LOCAL.ok === false){ toast('This browser is blocking storage. Back up before you close the page.'); render(); }
+}
+function applySnapshot(o){
+  if (!o || typeof o !== 'object' || !o.data || typeof o.data !== 'object') return false;
+  S.projects = LOCAL.cleanList(o.data.projects).map(function(p){ p.raid = Array.isArray(p.raid) ? p.raid : []; p.milestones = Array.isArray(p.milestones) ? p.milestones : []; return p; });
+  S.intake = LOCAL.cleanList(o.data.intake);
+  S.rules = D.mergeRules(o.docs && o.docs.rules);
+  return true;
+}
+function loadSampleLocal(){ var s = D.sampleData(new Date()); S.projects = s.projects; S.intake = s.intake; S.rules = D.mergeRules(null); }
+function startLocal(){
+  S.mode = 'local'; LOCAL.key = 'desk:' + APP;
+  var saved = LOCAL.read();
+  if (!(saved && saved.app === APP && applySnapshot(saved))){ loadSampleLocal(); persist(); }
+  S.ready = {projects:true, intake:true, rules:true};
+  if (!window.claude) S.downloads = LOCAL.fileSaver();
+  render();
+}
+
+function init(){
+  render();
+  var c = window.claude;
+  if (!c || typeof c.use !== 'function'){ startLocal(); return; }
+  c.use('downloads').then(function(d){ S.downloads = d; if (location.hash === '#report') render(); }, function(){});
+  Promise.all([c.use('db').catch(function(){ return null; }), c.use('user').catch(function(){ return null; })]).then(function(res){
+    var db = res[0], user = res[1];
+    if (!db){ startLocal(); return; }
+    DB = db; S.mode = 'live';
+    if (user && typeof user.can === 'function'){
+      Promise.resolve(user.can('data.write')).then(function(w){ if (w === false){ S.canWrite = false; render(); } }, function(){});
+    }
+    var onErr = function(e){ if (e && e.code === 'revoked'){ S.canWrite = false; render(); } else toast('Live updates paused. Reload the page to reconnect.'); };
+    db.collection('projects').onSnapshot(function(snap){
+      S.projects = snap.docs.map(function(d){ return Object.assign(clone(d.data()), {id:d.id}); });
+      S.ready.projects = true; refresh();
+    }, onErr);
+    db.collection('intake').onSnapshot(function(snap){
+      S.intake = snap.docs.map(function(d){ return Object.assign(clone(d.data()), {id:d.id}); });
+      S.ready.intake = true; refresh();
+    }, onErr);
+    db.doc('config/rules').onSnapshot(function(d){
+      S.rules = D.mergeRules(d.exists ? d.data() : null);
+      S.ready.rules = true; refresh();
+    }, onErr);
+  });
+}
+
+/* ---------- Routing ---------- */
+function route(){
+  var h = (location.hash || '').replace(/^#/, '');
+  if (!h) return {v:'portfolio'};
+  if (h.indexOf('p-') === 0) return {v:'project', id:h.slice(2)};
+  if (['portfolio','intake','report','rules','new'].indexOf(h) >= 0) return {v:h};
+  return {v:'portfolio'};
+}
+window.addEventListener('hashchange', function(){
+  if (S.dirty && !leaveOk()){ return; }
+  S.dirty = false; S.pending = false; S.armed = null;
+  render(); window.scrollTo(0, 0);
+});
+function leaveOk(){ return true; } /* unsaved edits are discarded on navigation; forms are short */
+
+/* ---------- Render shell ---------- */
+function renderNav(){
+  var r = route(), act = function(v){ return (r.v === v || (v === 'portfolio' && r.v === 'project')) ? ' aria-current="page"' : ''; };
+  var active = S.projects.filter(function(p){ return p.stage !== 'Closed'; }).length;
+  var newIntake = S.intake.filter(function(i){ return i.status === 'New' || i.status === 'Under review'; }).length;
+  $('#nav').innerHTML =
+    '<a href="#portfolio"' + act('portfolio') + '>Portfolio<span class="count">' + active + '</span></a>' +
+    '<a href="#intake"' + act('intake') + '>Intake<span class="count">' + newIntake + '</span></a>' +
+    '<a href="#report"' + act('report') + '>Weekly report</a>' +
+    '<a href="#rules"' + act('rules') + '>Health rules</a>';
+  var nb = $('#newbtn'); nb.hidden = !S.canWrite || S.mode === 'loading';
+  $('#mode').innerHTML = S.mode === 'live'
+    ? '<b>Saved & shared</b>Changes save automatically and appear for everyone with access.' + (S.canWrite ? '' : '<br>You have view-only access.')
+    : S.mode === 'local' ? '<b>Saved in this browser</b>Changes stay on this computer. Use Back up to keep a copy.' : '<b>Connecting…</b>';
+}
+
+function render(){
+  renderNav();
+  var m = $('#main');
+  if (S.mode === 'loading' || !(S.ready.projects && S.ready.intake && S.ready.rules)){
+    m.innerHTML = '<div class="head"><div><h1>Portfolio</h1><p class="sub">Loading your projects…</p></div></div>' +
+      '<div class="kpis">' + [1,2,3,4].map(function(){ return '<div class="kpi"><div class="skel" style="width:40%"></div><div class="skel" style="height:24px;width:60%"></div><div class="skel"></div></div>'; }).join('') + '</div>';
+    return;
+  }
+  var r = route(), html = '';
+  if (r.v === 'project') html = viewProject(r.id);
+  else if (r.v === 'intake') html = viewIntake();
+  else if (r.v === 'report') html = viewReport();
+  else if (r.v === 'rules') html = viewRules();
+  else if (r.v === 'new') html = S.canWrite ? viewNew() : viewPortfolio();
+  else html = viewPortfolio();
+  m.innerHTML = (S.mode === 'local' ? LOCAL.banner(S.armed, !!S.downloads) : '') +
+    (S.mode === 'live' && !S.canWrite ? '<div class="banner"><span><b>View only.</b> You can read the portfolio and copy reports, but not change it.</span></div>' : '') + html;
+}
+
+/* ---------- Portfolio ---------- */
+function viewPortfolio(){
+  var t = today(), we = D.weekEnding(t);
+  if (!S.projects.length){
+    return '<div class="head"><div><h1>Portfolio</h1><p class="sub">Week ending ' + D.fmtDate(we) + '</p></div></div>' +
+      '<div class="panel empty"><h2>No projects yet</h2><p>Set up your first project or operational service. Health, RAID and the weekly report fill in as you add them.</p>' +
+      (S.canWrite ? '<div class="row" style="justify-content:center"><a class="btn primary" href="#new">Set up a project</a><button class="btn" data-act="load-sample">Load sample portfolio</button></div>' : '') + '</div>';
+  }
+  var all = S.projects.map(function(p){ return {p:p, h:D.health(p, S.rules, t)}; });
+  var activeAll = all.filter(function(x){ return x.p.stage !== 'Closed'; });
+  var rows = all.filter(function(x){
+    if (S.hideClosed && x.p.stage === 'Closed') return false;
+    if (S.filter === 'Projects') return x.p.type !== 'Operations';
+    if (S.filter === 'Operations') return x.p.type === 'Operations';
+    return true;
+  }).sort(function(a,b){ return b.h.lvl - a.h.lvl || String(a.p.code).localeCompare(String(b.p.code)); });
+
+  var counts = [0,0,0]; activeAll.forEach(function(x){ counts[x.h.lvl]++; });
+  var bud = 0, sp = 0, fc = 0; activeAll.forEach(function(x){ bud += D.num(x.p.budget); sp += D.num(x.p.spent); fc += D.num(x.p.forecast) || D.num(x.p.spent); });
+  var vari = fc - bud;
+  var openRaid = []; activeAll.forEach(function(x){ (x.p.raid || []).forEach(function(r){ if (r.status !== 'Closed' && (r.type === 'Risk' || r.type === 'Issue')) openRaid.push(r); }); });
+  var crit = openRaid.filter(function(r){ return r.severity === 'Critical'; }).length, high = openRaid.filter(function(r){ return r.severity === 'High'; }).length;
+  var odMs = 0, soonMs = 0, soon = D.addDays(t, 14);
+  activeAll.forEach(function(x){ (x.p.milestones || []).forEach(function(m){ var d = D.parseDate(m.due); if (!m.done && d){ if (d < t) odMs++; else if (d <= soon) soonMs++; } }); });
+  var n = activeAll.length || 1;
+
+  var kpis = '<div class="kpis">' +
+    '<div class="kpi"><span class="label">Health</span><span class="big rag">' + counts[2] + ' <span style="color:var(--red)">R</span> · ' + counts[1] + ' <span style="color:var(--amber)">A</span> · ' + counts[0] + ' <span style="color:var(--green)">G</span></span>' +
+      '<div class="ragbar" aria-hidden="true"><span style="width:' + (counts[2]/n*100) + '%;background:var(--red)"></span><span style="width:' + (counts[1]/n*100) + '%;background:var(--amber)"></span><span style="width:' + (counts[0]/n*100) + '%;background:var(--green)"></span></div>' +
+      '<span class="note">' + D.plural(activeAll.length, 'active item') + '</span></div>' +
+    '<div class="kpi"><span class="label">Forecast vs budget</span><span class="big" style="color:' + (vari > 0 ? 'var(--red)' : 'var(--ink)') + '">' + (vari > 0 ? '+' : '') + D.nzdShort(vari) + '</span>' +
+      '<span class="note">' + D.nzdShort(fc) + ' forecast on ' + D.nzdShort(bud) + ' approved · ' + D.nzdShort(sp) + ' spent</span></div>' +
+    '<div class="kpi"><span class="label">Open risks & issues</span><span class="big">' + openRaid.length + '</span>' +
+      '<span class="note">' + crit + ' critical · ' + high + ' high</span></div>' +
+    '<div class="kpi"><span class="label">Milestones</span><span class="big" style="color:' + (odMs ? 'var(--red)' : 'var(--ink)') + '">' + odMs + ' overdue</span>' +
+      '<span class="note">' + soonMs + ' due in the next 14 days</span></div>' +
+  '</div>';
+
+  var attnItems = activeAll.filter(function(x){ return x.h.lvl > 0; }).sort(function(a,b){ return b.h.lvl - a.h.lvl; });
+  var attn = '<section class="panel"><div class="panel-head"><h2>Needs attention</h2><span class="muted">' + (attnItems.length ? 'Why each item is Red or Amber' : '') + '</span></div>' +
+    (attnItems.length ? '<div class="attn">' + attnItems.map(function(x){
+      return '<a href="#p-' + esc(x.p.id) + '">' + pill(x.h.lvl) + '<div><div class="t">' + esc(x.p.name) + ' <span class="faint mono" style="font-weight:400">' + esc(x.p.code) + '</span></div><ul>' +
+        x.h.reasons.slice(0, 3).map(function(r){ return '<li><span class="dot ' + D.LV[r.lvl] + '"></span><span>' + esc(r.text) + '</span></li>'; }).join('') +
+        (x.h.reasons.length > 3 ? '<li><span class="dot" style="background:transparent"></span><span>+' + (x.h.reasons.length - 3) + ' more</span></li>' : '') +
+        '</ul></div><span class="muted" style="font-size:12.5px">' + esc(x.p.owner || '') + '</span></a>';
+    }).join('') + '</div>' : '<p class="muted">Every active item passes its health checks.</p>') + '</section>';
+
+  var table = '<section class="panel"><div class="panel-head"><h2>All work</h2><div class="row">' +
+    ['All','Projects','Operations'].map(function(f){ return '<button class="tab" data-act="filter" data-v="' + f + '" aria-pressed="' + (S.filter === f) + '">' + f + '</button>'; }).join('') +
+    '<label class="row" style="gap:6px;font-size:12.5px;color:var(--muted);margin-left:6px"><input type="checkbox" id="hideClosed" data-act="hide-closed"' + (S.hideClosed ? ' checked' : '') + '> Hide closed</label></div></div>' +
+    '<div class="tablewrap"><table><thead><tr><th>Health</th><th>Project</th><th>Stage</th><th>Progress</th><th class="r">Budget</th><th class="r">Forecast</th><th>Ends</th></tr></thead><tbody>' +
+    (rows.length ? rows.map(function(x){
+      var p = x.p, over = (D.num(p.forecast) || D.num(p.spent)) - D.num(p.budget);
+      var prog = p.type === 'Operations'
+        ? '<span class="muted" style="font-size:12.5px">Ongoing · ' + (x.h.elapsed == null ? '—' : Math.round(x.h.elapsed) + '% of period') + '</span>'
+        : '<div class="prog"><div class="track"><div class="fill" style="width:' + D.clamp(D.num(p.percentComplete), 0, 100) + '%"></div></div><span class="num" style="font-size:12.5px">' + Math.round(D.num(p.percentComplete)) + '%</span></div>';
+      return '<tr class="link" data-href="#p-' + esc(p.id) + '"><td>' + pill(x.h.lvl) + '</td>' +
+        '<td><a href="#p-' + esc(p.id) + '" style="color:inherit;font-weight:600;text-decoration:none">' + esc(p.name) + '</a><div class="faint" style="font-size:12px"><span class="mono">' + esc(p.code) + '</span> · ' + esc(p.owner || 'No owner') + (p.type === 'Operations' ? ' · Operations' : '') + '</div>' +
+        (x.h.reasons[0] ? '<div class="why">' + esc(x.h.reasons[0].text) + '</div>' : '') + '</td>' +
+        '<td><span class="chip">' + esc(p.stage) + '</span></td><td>' + prog + '</td>' +
+        '<td class="r num">' + D.nzdShort(p.budget) + '</td><td class="r num"' + (over > 0 ? ' style="color:var(--red)"' : '') + '>' + D.nzdShort(D.num(p.forecast) || D.num(p.spent)) + '</td>' +
+        '<td class="num" style="white-space:nowrap">' + D.fmtDate(p.end) + '</td></tr>';
+    }).join('') : '<tr><td colspan="7" class="muted">Nothing matches this filter.</td></tr>') +
+    '</tbody></table></div></section>';
+
+  var bmax = 0; rows.forEach(function(x){ bmax = Math.max(bmax, D.num(x.p.budget), D.num(x.p.forecast), D.num(x.p.spent)); });
+  var budget = '<section class="panel"><div class="panel-head"><h2>Budget</h2><div class="legend"><span><i class="lg-sw" style="background:var(--accent)"></i>Spent</span><span><i class="lg-sw" style="border:1.5px dashed var(--muted)"></i>Forecast</span><span><i class="lg-sw" style="width:2px;height:12px;background:var(--ink)"></i>Approved budget</span></div></div><div class="budget">' +
+    rows.filter(function(x){ return D.num(x.p.budget) > 0; }).map(function(x){
+      var p = x.p, b = D.num(p.budget), s = D.num(p.spent), f = D.num(p.forecast) || s, sc = function(v){ return bmax ? (v / bmax * 100).toFixed(2) : 0; };
+      return '<div class="brow"><span class="nm" title="' + esc(p.name) + '"><span class="dot ' + D.LV[x.h.lvl] + '" style="margin-right:6px"></span>' + esc(p.name) + '</span>' +
+        '<div class="btrack" role="img" aria-label="' + esc(p.name + ': spent ' + D.nzd(s) + ' of ' + D.nzd(b) + ', forecast ' + D.nzd(f)) + '"><div class="bfc' + (f > b ? ' over' : '') + '" style="width:' + sc(f) + '%"></div><div class="bspent" style="width:' + sc(s) + '%"></div><div class="bbud" style="left:calc(' + sc(b) + '% - 1px)"></div></div>' +
+        '<span class="num" style="font-size:12.5px;white-space:nowrap">' + Math.round(b ? s / b * 100 : 0) + '% spent</span></div>';
+    }).join('') + '</div></section>';
+
+  return '<div class="head"><div><h1>Portfolio</h1><p class="sub">Week ending ' + D.fmtDate(we) + ' · health recalculated ' + D.fmtDate(t) + '</p></div>' +
+    '<div class="row"><a class="btn" href="#report">Weekly report</a>' + (S.canWrite ? '<a class="btn primary" href="#new">New project</a>' : '') + '</div></div>' +
+    kpis + attn + table + budget;
+}
+
+/* ---------- Project detail ---------- */
+function findProject(id){ return S.projects.find(function(p){ return p.id === id; }); }
+function viewProject(id){
+  var p = findProject(id);
+  if (!p) return '<div class="panel empty"><h2>Project not found</h2><p>It may have been deleted.</p><a class="btn" href="#portfolio">Back to portfolio</a></div>';
+  var t = today(), h = D.health(p, S.rules, t), ro = S.canWrite ? '' : ' disabled';
+  var ops = p.type === 'Operations';
+
+  var why = '<section class="panel"><div class="panel-head"><h2>Why it’s ' + D.LV_NAME[h.lvl] + '</h2><a class="btn ghost sm" href="#rules">Adjust rules</a></div><div class="whybox">' +
+    (h.reasons.length ? h.reasons.map(function(r){ return '<div class="reason"><span class="dot ' + D.LV[r.lvl] + '"></span><span class="area">' + esc(r.area) + '</span><span class="txt">' + esc(r.text) + '</span></div>'; }).join('')
+      : '<p>All checks pass.</p>') +
+    '<p class="checks">Checked: ' + esc(h.checks.join(', ')) + '. Health updates automatically from the fields below.</p></div></section>';
+
+  var stageOpts = D.STAGES.map(function(s){ return '<option' + (p.stage === s ? ' selected' : '') + '>' + s + '</option>'; }).join('');
+  var upd = p.updated ? D.daysBetween(new Date(p.updated), t) : null;
+  var form = '<section class="panel"><form data-form="update" data-id="' + esc(p.id) + '" novalidate><div class="panel-head"><h2>Status update</h2><span class="muted" style="font-size:12.5px">' +
+    (upd == null ? 'Not updated yet' : 'Last updated ' + (upd === 0 ? 'today' : D.plural(upd, 'day') + ' ago')) + '</span></div><fieldset' + ro + '><div class="fgrid">' +
+    '<div class="field"><label for="u-stage">Stage</label><select id="u-stage" name="stage">' + stageOpts + '</select></div>' +
+    (ops ? '<div class="field"><span class="lab">Progress</span><span class="hint" style="padding-top:6px">Operations are ongoing; budget is compared with time elapsed in the period.</span></div>'
+         : '<div class="field"><label for="u-pc">% complete <span class="num" id="u-pc-out">' + Math.round(D.num(p.percentComplete)) + '%</span></label><input type="range" id="u-pc" name="percentComplete" min="0" max="100" step="5" value="' + Math.round(D.num(p.percentComplete)) + '"></div>') +
+    '<div class="field"><label for="u-spent">Spent to date (NZD)</label><input type="number" id="u-spent" name="spent" min="0" step="100" inputmode="decimal" value="' + esc(D.num(p.spent)) + '"></div>' +
+    '<div class="field"><label for="u-fc">Forecast at completion (NZD)</label><input type="number" id="u-fc" name="forecast" min="0" step="100" inputmode="decimal" value="' + esc(D.num(p.forecast)) + '"></div>' +
+    '<div class="field"><label for="u-sum">This week</label><textarea id="u-sum" name="summary" maxlength="1200" placeholder="What moved, what got done">' + esc(p.summary) + '</textarea></div>' +
+    '<div class="field"><label for="u-next">Next week</label><textarea id="u-next" name="nextSteps" maxlength="1200" placeholder="What happens next">' + esc(p.nextSteps) + '</textarea></div>' +
+    '</div><details style="margin-top:12px"><summary class="muted" style="cursor:pointer;font-size:13px">Project details (owner, dates, budget)</summary><div class="fgrid" style="margin-top:12px">' +
+    '<div class="field full"><label for="u-name">Name</label><input type="text" id="u-name" name="name" maxlength="120" required value="' + esc(p.name) + '"></div>' +
+    '<div class="field"><label for="u-owner">Owner</label><input type="text" id="u-owner" name="owner" maxlength="80" value="' + esc(p.owner) + '"></div>' +
+    '<div class="field"><label for="u-sponsor">Sponsor</label><input type="text" id="u-sponsor" name="sponsor" maxlength="80" value="' + esc(p.sponsor) + '"></div>' +
+    '<div class="field"><label for="u-start">Start</label><input type="date" id="u-start" name="start" value="' + esc(p.start) + '"></div>' +
+    '<div class="field"><label for="u-end">End</label><input type="date" id="u-end" name="end" value="' + esc(p.end) + '"></div>' +
+    '<div class="field"><label for="u-budget">Approved budget (NZD)</label><input type="number" id="u-budget" name="budget" min="0" step="100" value="' + esc(D.num(p.budget)) + '"></div>' +
+    '<div class="field full"><label for="u-obj">Objective</label><input type="text" id="u-obj" name="objective" maxlength="300" value="' + esc(p.objective) + '"></div>' +
+    '</div></details><p class="err" id="u-err" hidden></p>' +
+    '<div class="row" style="margin-top:14px"><button class="btn primary" type="submit">Save update</button><span class="muted" style="font-size:12.5px">Saving also marks the project as updated this week.</span></div></fieldset></form></section>';
+
+  var ms = (p.milestones || []).slice().sort(function(a,b){ return String(a.due).localeCompare(String(b.due)); });
+  var msPanel = '<section class="panel"><div class="panel-head"><h2>Milestones</h2><span class="muted">' + ms.filter(function(m){ return m.done; }).length + ' of ' + ms.length + ' done</span></div><div class="ms">' +
+    (ms.length ? ms.map(function(m){
+      var d = D.parseDate(m.due), late = !m.done && d && d < t;
+      return '<div class="ms-item' + (m.done ? ' done' : '') + '"><input type="checkbox" aria-label="Mark ' + esc(m.name) + ' done" data-act="ms-toggle" data-ms="' + esc(m.id) + '"' + (m.done ? ' checked' : '') + ro + '>' +
+        '<span class="nm">' + esc(m.name) + '</span><span class="num' + (late ? ' late' : ' muted') + '" style="font-size:12.5px;white-space:nowrap">' + (late ? 'Overdue · ' : '') + D.fmtDate(m.due) + '</span>' +
+        (S.canWrite ? '<button class="btn ghost sm" data-act="ms-del" data-ms="' + esc(m.id) + '" aria-label="Remove ' + esc(m.name) + '">Remove</button>' : '<span></span>') + '</div>';
+    }).join('') : '<p class="muted">No milestones yet.</p>') + '</div>' +
+    (S.canWrite ? '<form data-form="ms-add" data-id="' + esc(p.id) + '" class="msrow" style="margin-top:12px" novalidate><input type="text" name="name" id="ms-name" placeholder="New milestone" maxlength="100" aria-label="Milestone name"><input type="date" name="due" id="ms-due" aria-label="Due date"><button class="btn" type="submit">Add</button></form>' : '') +
+    '</section>';
+
+  var b = D.num(p.budget), s = D.num(p.spent), f = D.num(p.forecast) || s;
+  var budPanel = '<section class="panel"><div class="panel-head"><h2>Budget</h2><span class="muted">NZD</span></div><table><tbody>' +
+    '<tr><td>Approved</td><td class="r num">' + D.nzd(b) + '</td></tr><tr><td>Spent to date</td><td class="r num">' + D.nzd(s) + ' <span class="muted">(' + (b ? Math.round(s / b * 100) : 0) + '%)</span></td></tr>' +
+    '<tr><td>Forecast at completion</td><td class="r num">' + D.nzd(f) + '</td></tr><tr><td>Variance</td><td class="r num" style="color:' + (f > b ? 'var(--red)' : 'var(--green)') + '">' + (f - b > 0 ? '+' : '') + D.nzd(f - b) + '</td></tr></tbody></table></section>';
+
+  // RAID
+  var raid = (p.raid || []);
+  var cnt = {All:0}; D.RAID_TYPES.forEach(function(k){ cnt[k] = 0; });
+  raid.forEach(function(r){ if (r.status !== 'Closed' || S.showClosedRaid){ cnt.All++; cnt[r.type] = (cnt[r.type] || 0) + 1; } });
+  var sevRank = function(r){ return D.SEVERITIES.indexOf(r.severity); };
+  var shown = raid.filter(function(r){ return (S.raidFilter === 'All' || r.type === S.raidFilter) && (S.showClosedRaid || r.status !== 'Closed'); })
+    .sort(function(a,b){ return (a.status === 'Closed') - (b.status === 'Closed') || sevRank(b) - sevRank(a) || String(a.due || '9').localeCompare(String(b.due || '9')); });
+  var raidPanel = '<section class="panel" id="raid"><div class="panel-head"><h2>RAID log</h2><div class="row">' +
+    ['All'].concat(D.RAID_TYPES).map(function(k){ return '<button class="tab" data-act="raid-filter" data-v="' + k + '" aria-pressed="' + (S.raidFilter === k) + '">' + (k === 'All' ? 'All' : k + 's') + ' <span class="num">' + (cnt[k] || 0) + '</span></button>'; }).join('') +
+    '<label class="row" style="gap:6px;font-size:12.5px;color:var(--muted);margin-left:6px"><input type="checkbox" id="showClosedRaid" data-act="raid-closed"' + (S.showClosedRaid ? ' checked' : '') + '> Show closed</label></div></div>' +
+    (S.canWrite ? '<form data-form="raid-add" data-id="' + esc(p.id) + '" class="raidform" novalidate>' +
+      '<div class="field"><label for="r-type">Type</label><select id="r-type" name="type">' + D.RAID_TYPES.map(function(k){ return '<option' + ((S.raidFilter === k) ? ' selected' : '') + '>' + k + '</option>'; }).join('') + '</select></div>' +
+      '<div class="field"><label for="r-title">Description</label><input type="text" id="r-title" name="title" maxlength="200" placeholder="e.g. Vendor may miss the firmware date"></div>' +
+      '<div class="field"><label for="r-sev">Severity</label><select id="r-sev" name="severity">' + D.SEVERITIES.map(function(k){ return '<option' + (k === 'Medium' ? ' selected' : '') + '>' + k + '</option>'; }).join('') + '</select></div>' +
+      '<div class="field"><label for="r-owner">Owner</label><input type="text" id="r-owner" name="owner" maxlength="80" value="' + esc(p.owner) + '"></div>' +
+      '<div class="field"><label for="r-due">Due</label><input type="date" id="r-due" name="due"></div>' +
+      '<button class="btn primary" type="submit">Log it</button></form>' : '') +
+    '<div class="tablewrap"><table><thead><tr><th>Ref</th><th>Description</th><th>Severity</th><th>Owner</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>' +
+    (shown.length ? shown.map(function(r){
+      var d = D.parseDate(r.due), late = r.status !== 'Closed' && d && d < t && r.type !== 'Decision';
+      var armedKey = 'raid:' + r.id;
+      return '<tr class="' + (r.status === 'Closed' ? 'closed' : '') + '"><td class="mono" style="white-space:nowrap">' + esc(D.raidRef(r)) + '<div class="faint" style="font-size:11.5px;font-family:var(--f-body)">' + esc(r.type) + '</div></td>' +
+        '<td><span class="t">' + esc(r.title) + '</span>' + (r.note ? '<div class="muted" style="font-size:12.5px">' + esc(r.note) + '</div>' : '') + '</td>' +
+        '<td><span class="sev ' + esc(r.severity) + '">' + esc(r.type === 'Decision' ? '—' : r.severity) + '</span></td><td>' + esc(r.owner || '—') + '</td>' +
+        '<td class="num' + (late ? ' late' : '') + '" style="white-space:nowrap">' + (r.due ? D.fmtDate(r.due) : '—') + '</td>' +
+        '<td>' + (S.canWrite ? '<button class="btn sm" data-act="raid-status" data-r="' + esc(r.id) + '">' + (r.status === 'Closed' ? 'Reopen' : (r.type === 'Decision' ? 'Mark agreed' : 'Close')) + '</button>' : esc(r.status)) + '</td>' +
+        '<td>' + (S.canWrite ? '<button class="btn sm danger' + (S.armed === armedKey ? ' armed' : '') + '" data-act="raid-del" data-r="' + esc(r.id) + '">' + (S.armed === armedKey ? 'Confirm' : 'Delete') + '</button>' : '') + '</td></tr>';
+    }).join('') : '<tr><td colspan="7" class="muted">Nothing logged here yet.</td></tr>') + '</tbody></table></div></section>';
+
+  var delKey = 'proj:' + p.id;
+  return '<div class="head"><div><a href="#portfolio" class="muted" style="font-size:13px;text-decoration:none">← Portfolio</a>' +
+    '<h1 style="margin-top:6px">' + esc(p.name) + '</h1><p class="sub"><span class="mono">' + esc(p.code) + '</span> · ' + esc(p.type) + ' · ' + esc(p.stage) + ' · Owner ' + esc(p.owner || '—') + (p.sponsor ? ' · Sponsor ' + esc(p.sponsor) : '') + '</p>' +
+    (p.objective ? '<p style="margin-top:6px;max-width:70ch">' + esc(p.objective) + '</p>' : '') + '</div>' +
+    '<div class="row">' + pill(h.lvl, true) + '<a class="btn" href="#report" data-act="report-for" data-id="' + esc(p.id) + '">Weekly report</a></div></div>' +
+    why + '<div class="grid2"><div class="stack">' + form + '</div><div class="stack">' + msPanel + budPanel + '</div></div>' + raidPanel +
+    (S.canWrite ? '<div class="row" style="justify-content:flex-end"><button class="btn danger' + (S.armed === delKey ? ' armed' : '') + '" data-act="proj-del" data-id="' + esc(p.id) + '">' + (S.armed === delKey ? 'Confirm: delete project and its RAID log' : 'Delete project') + '</button></div>' : '');
+}
+
+/* ---------- New project setup ---------- */
+function viewNew(){
+  var pf = S.prefill || {};
+  var t = today(), rows = '';
+  var msList = pf.milestones || [];
+  var n = Math.max(S.newMsRows, msList.length);
+  for (var i = 0; i < n; i++){
+    var m = msList[i] || {};
+    rows += '<div class="msrow"><input type="text" name="msName" id="n-ms-' + i + '" maxlength="100" placeholder="' + (['e.g. Requirements signed off','e.g. UAT complete','e.g. Go-live'][i] || 'Milestone') + '" aria-label="Milestone ' + (i + 1) + ' name" value="' + esc(m.name) + '"><input type="date" name="msDue" id="n-msd-' + i + '" aria-label="Milestone ' + (i + 1) + ' due date" value="' + esc(m.due) + '"><span></span></div>';
+  }
+  return '<div class="head"><div><a href="#portfolio" class="muted" style="font-size:13px;text-decoration:none">← Portfolio</a><h1 style="margin-top:6px">New project</h1>' +
+    '<p class="sub">' + (pf.fromIntake ? 'From intake request “' + esc(pf.name) + '”. ' : '') + 'Takes about two minutes. You can change anything later.</p></div></div>' +
+    '<form data-form="new" class="panel" novalidate><div class="stack">' +
+    '<div><div class="section-title"><h2>Basics</h2></div><div class="fgrid" style="margin-top:10px">' +
+      '<div class="field full"><label for="n-name">Name *</label><input type="text" id="n-name" name="name" maxlength="120" required value="' + esc(pf.name) + '" placeholder="e.g. Warehouse barcode scanning rollout"></div>' +
+      '<div class="field"><label for="n-type">Type</label><select id="n-type" name="type"><option value="Project">Project (has an end)</option><option value="Operations"' + (pf.type === 'Operations' ? ' selected' : '') + '>Operations / BAU (ongoing service)</option></select></div>' +
+      '<div class="field"><label for="n-stage">Stage</label><select id="n-stage" name="stage">' + D.STAGES.slice(0, 4).map(function(s){ return '<option' + (s === (pf.stage || 'Initiate') ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div>' +
+      '<div class="field"><label for="n-owner">Owner *</label><input type="text" id="n-owner" name="owner" maxlength="80" required value="' + esc(pf.owner) + '" placeholder="Who runs it day to day"></div>' +
+      '<div class="field"><label for="n-sponsor">Sponsor</label><input type="text" id="n-sponsor" name="sponsor" maxlength="80" value="' + esc(pf.sponsor) + '" placeholder="Who signs off"></div>' +
+      '<div class="field full"><label for="n-obj">Objective</label><input type="text" id="n-obj" name="objective" maxlength="300" value="' + esc(pf.objective) + '" placeholder="The outcome in one line, e.g. cut picking errors by 60%"></div>' +
+    '</div></div>' +
+    '<div><div class="section-title"><h2>Timeline & budget</h2></div><div class="fgrid" style="margin-top:10px">' +
+      '<div class="field"><label for="n-start">Start *</label><input type="date" id="n-start" name="start" required value="' + esc(pf.start || D.iso(t)) + '"></div>' +
+      '<div class="field"><label for="n-end">End *</label><input type="date" id="n-end" name="end" required value="' + esc(pf.end || '') + '"><span class="hint">For operations, use the end of the financial year (e.g. 31 Mar).</span></div>' +
+      '<div class="field"><label for="n-budget">Approved budget (NZD)</label><input type="number" id="n-budget" name="budget" min="0" step="100" inputmode="decimal" value="' + esc(pf.budget || '') + '" placeholder="0"></div>' +
+      '<div class="field"><label for="n-spent">Spent so far (NZD)</label><input type="number" id="n-spent" name="spent" min="0" step="100" inputmode="decimal" value="0"></div>' +
+    '</div></div>' +
+    '<div><div class="section-title"><h2>Key milestones</h2><span class="muted">Optional</span></div><div class="msrows" style="margin-top:10px">' + rows + '</div>' +
+      '<button class="btn ghost sm" type="button" data-act="new-ms-row" style="margin-top:8px">+ Add another milestone</button></div>' +
+    '<p class="err" id="n-err" hidden></p>' +
+    '<div class="row"><button class="btn primary" type="submit">Create project</button><a class="btn ghost" href="#portfolio" data-act="cancel-new">Cancel</a></div>' +
+    '</div></form>';
+}
+
+/* ---------- Intake ---------- */
+function viewIntake(){
+  var list = S.intake.map(function(it){ return {it:it, sc:D.intakeScore(it, S.rules)}; })
+    .filter(function(x){ return S.showDoneIntake || (x.it.status !== 'Declined' && x.it.status !== 'Approved'); })
+    .sort(function(a,b){ return b.sc.score - a.sc.score; });
+  var hidden = S.intake.length - S.intake.filter(function(it){ return it.status !== 'Declined' && it.status !== 'Approved'; }).length;
+  var critInput = function(c){
+    return '<div class="field"><span class="lab" id="lab-' + c.k + '">' + c.label + '</span><div class="seg" role="radiogroup" aria-labelledby="lab-' + c.k + '">' +
+      [1,2,3,4,5].map(function(v){ return '<label><input type="radio" name="' + c.k + '" id="i-' + c.k + '-' + v + '" value="' + v + '"' + (v === 3 ? ' checked' : '') + '><span>' + v + '</span></label>'; }).join('') +
+      '</div><span class="hint">' + c.hint + '</span></div>';
+  };
+  var form = S.canWrite ? '<section class="panel"><div class="panel-head"><h2>Log a request</h2>' +
+    '<button class="btn ghost sm" data-act="toggle-intake-form" aria-expanded="' + S.showIntakeForm + '">' + (S.showIntakeForm ? 'Hide' : 'Show form') + '</button></div>' +
+    (S.showIntakeForm ? '<form data-form="intake" novalidate><div class="fgrid">' +
+      '<div class="field full"><label for="i-title">Request *</label><input type="text" id="i-title" name="title" maxlength="140" required placeholder="e.g. Automate supplier invoice capture"></div>' +
+      '<div class="field"><label for="i-req">Requested by</label><input type="text" id="i-req" name="requester" maxlength="80" placeholder="Team or person"></div>' +
+      '<div class="field"><label for="i-bud">Rough cost (NZD)</label><input type="number" id="i-bud" name="estBudget" min="0" step="1000" inputmode="decimal"></div>' +
+      '<div class="field full"><label for="i-desc">Problem it solves</label><textarea id="i-desc" name="description" maxlength="600"></textarea></div>' +
+      '</div><div class="critgrid" style="margin-top:14px">' + D.CRITERIA.map(critInput).join('') + '</div>' +
+      '<p class="err" id="i-err" hidden></p><div class="row" style="margin-top:14px"><button class="btn primary" type="submit">Add to intake</button></div></form>'
+      : '<p class="muted">Score new requests on five criteria. The highest-value work rises to the top.</p>') + '</section>' : '';
+
+  var cards = list.length ? '<div class="icards">' + list.map(function(x, i){
+    var it = x.it, statusOpts = ['New','Under review','Approved','Declined'].map(function(s){ return '<option' + (it.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('');
+    var key = 'intake:' + it.id, linked = it.projectId && findProject(it.projectId);
+    return '<article class="icard"><span class="rank">#' + (i + 1) + '</span><div style="min-width:0"><h3>' + esc(it.title) + '</h3>' +
+      '<p class="muted" style="font-size:12.5px;margin-top:2px">' + esc(it.requester || 'Unknown requester') + (it.estBudget ? ' · ~' + D.nzdShort(it.estBudget) : '') + (it.created ? ' · logged ' + D.fmtDate(it.created) : '') + '</p>' +
+      (it.description ? '<p style="margin-top:6px;font-size:13.5px">' + esc(it.description) + '</p>' : '') +
+      '<div class="crit">' + D.CRITERIA.map(function(c){ var pt = x.sc.parts[c.k]; return '<div><span>' + c.label + ' <b class="num" style="color:var(--ink)">' + pt.v + '</b></span><span class="bar"><i style="width:' + (pt.frac * 100) + '%"></i></span></div>'; }).join('') + '</div>' +
+      '<div class="row" style="margin-top:12px">' +
+        (S.canWrite ? '<label class="sr" for="st-' + esc(it.id) + '">Status</label><select id="st-' + esc(it.id) + '" data-act="intake-status" data-id="' + esc(it.id) + '" style="width:auto">' + statusOpts + '</select>' : '<span class="chip">' + esc(it.status) + '</span>') +
+        (linked ? '<a class="btn sm" href="#p-' + esc(it.projectId) + '">Open project</a>' : (S.canWrite && it.status !== 'Declined' ? '<button class="btn sm" data-act="intake-convert" data-id="' + esc(it.id) + '">Approve & set up project</button>' : '')) +
+        (S.canWrite ? '<button class="btn sm ghost danger' + (S.armed === key ? ' armed' : '') + '" data-act="intake-del" data-id="' + esc(it.id) + '">' + (S.armed === key ? 'Confirm delete' : 'Delete') + '</button>' : '') +
+      '</div></div><div class="score"><div class="label">Score</div><div class="big">' + x.sc.score + '</div><div class="faint" style="font-size:12px">out of 100</div></div></article>';
+  }).join('') + '</div>' : '<div class="panel empty"><h2>No open requests</h2><p>Log a request and score it. The list ranks itself by value.</p></div>';
+
+  return '<div class="head"><div><h1>Intake</h1><p class="sub">Ranked by weighted score · weights: ' + D.CRITERIA.map(function(c){ return c.label + ' ' + S.rules.weights[c.k]; }).join(', ') + '</p></div>' +
+    '<label class="row" style="gap:6px;font-size:13px;color:var(--muted)"><input type="checkbox" id="showDoneIntake" data-act="intake-done"' + (S.showDoneIntake ? ' checked' : '') + '> Show approved & declined (' + hidden + ')</label></div>' + form + cards;
+}
+
+/* ---------- Weekly report ---------- */
+function reportHTML(m){
+  var C = {r:'#C2342A', a:'#B7790A', g:'#1F7D53'};
+  var tag = function(l){ return '<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:700;letter-spacing:.05em;color:#fff;background:' + C[D.LV[l]] + '">' + D.LV_NAME[l].toUpperCase() + '</span>'; };
+  var h = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#121829;line-height:1.5">';
+  h += '<h2 style="margin:0 0 4px;font-size:20px">Weekly status report</h2><p style="margin:0 0 12px;color:#586179">Week ending ' + esc(D.fmtDate(m.weekEnding)) + '</p>';
+  if (m.items.length > 1){
+    var v = m.forecast - m.budget;
+    h += '<p style="margin:0 0 4px"><b>Portfolio:</b> ' + m.items.length + ' items · ' + m.counts[2] + ' Red · ' + m.counts[1] + ' Amber · ' + m.counts[0] + ' Green</p>';
+    h += '<p style="margin:0 0 8px"><b>Budget:</b> ' + D.nzd(m.budget) + ' approved · ' + D.nzd(m.spent) + ' spent · forecast ' + D.nzd(m.forecast) + ' (' + (v >= 0 ? '+' : '') + D.nzd(v) + ')</p>';
+  }
+  m.items.forEach(function(x){
+    var p = x.p;
+    h += '<div style="border-top:1px solid #DCE0E9;padding-top:12px;margin-top:12px"><h3 style="margin:0;font-size:16px">' + tag(x.h.lvl) + ' &nbsp;' + esc(p.name) + ' <span style="color:#8A92A6;font-weight:400;font-size:13px">' + esc(p.code) + '</span></h3>';
+    h += '<p style="margin:4px 0 6px;color:#586179;font-size:13px">Owner ' + esc(p.owner || '—') + ' · ' + esc(p.stage) + (p.type === 'Operations' ? '' : ' · ' + Math.round(D.num(p.percentComplete)) + '% complete') + ' · ends ' + esc(D.fmtDate(p.end)) +
+      (D.num(p.budget) > 0 ? ' · ' + D.nzd(p.spent) + ' of ' + D.nzd(p.budget) + ' spent, forecast ' + D.nzd(D.num(p.forecast) || D.num(p.spent)) : '') + '</p>';
+    var sec = function(title, items){ if (!items.length) return ''; return '<p style="margin:8px 0 2px;font-weight:600">' + title + '</p><ul style="margin:0;padding-left:18px">' + items.map(function(s){ return '<li>' + s + '</li>'; }).join('') + '</ul>'; };
+    h += sec('Why', x.h.reasons.length ? x.h.reasons.map(function(r){ return esc(r.text); }) : ['All health checks pass.']);
+    if (p.summary) h += '<p style="margin:8px 0 0"><b>This week:</b> ' + esc(p.summary) + '</p>';
+    if (p.nextSteps) h += '<p style="margin:4px 0 0"><b>Next week:</b> ' + esc(p.nextSteps) + '</p>';
+    h += sec('Top risks & issues', x.risks.map(function(r){ return esc(D.raidRef(r) + ' ' + r.type + ' (' + r.severity + '): ' + r.title) + (r.owner ? ' — ' + esc(r.owner) : ''); }));
+    h += sec('Open actions', x.actions.map(function(r){ return esc(D.raidRef(r) + ' ' + r.title) + (r.owner ? ' — ' + esc(r.owner) : '') + (r.due ? ', due ' + esc(D.fmtDate(r.due)) : ''); }));
+    h += sec('Decisions this week', x.decisions.map(function(r){ return esc(r.title); }));
+    h += sec('Milestones', x.overdue.map(function(ms){ return '<b style="color:#C2342A">Overdue</b> ' + esc(ms.name) + ' (was due ' + esc(D.fmtDate(ms.due)) + ')'; })
+      .concat(x.upcoming.map(function(ms){ return esc(ms.name) + ' — ' + esc(D.fmtDate(ms.due)); })));
+    h += '</div>';
+  });
+  return h + '</div>';
+}
+function currentReport(){ return D.reportModel(S.projects, S.rules, new Date(), {scope:S.reportScope, includeClosed:S.reportClosed}); }
+function viewReport(){
+  if (S.reportScope !== 'all' && !findProject(S.reportScope)) S.reportScope = 'all';
+  var m = currentReport();
+  var opts = '<option value="all">Whole portfolio</option>' + S.projects.slice().sort(function(a,b){ return String(a.code).localeCompare(String(b.code)); })
+    .map(function(p){ return '<option value="' + esc(p.id) + '"' + (S.reportScope === p.id ? ' selected' : '') + '>' + esc(p.code + ' · ' + p.name) + '</option>'; }).join('');
+  var stale = m.items.filter(function(x){ return x.h.reasons.some(function(r){ return r.area === 'Reporting'; }); });
+  return '<div class="head"><div><h1>Weekly report</h1><p class="sub">Built from live project data · week ending ' + D.fmtDate(m.weekEnding) + '</p></div>' +
+    '<div class="row"><button class="btn primary" data-act="copy-email">Copy for email</button><button class="btn" data-act="copy-text">Copy as text</button>' +
+    (S.downloads ? '<button class="btn" data-act="save-report">Save as file</button>' : '') + '</div></div>' +
+    '<div class="row"><label for="rep-scope" class="muted" style="font-size:13px">Report on</label><select id="rep-scope" data-act="rep-scope" style="width:auto;max-width:100%">' + opts + '</select>' +
+    (S.reportScope === 'all' ? '<label class="row" style="gap:6px;font-size:13px;color:var(--muted)"><input type="checkbox" id="rep-closed" data-act="rep-closed"' + (S.reportClosed ? ' checked' : '') + '> Include closed</label>' : '') + '</div>' +
+    (stale.length ? '<div class="banner"><span><b>' + D.plural(stale.length, 'item') + ' not updated recently:</b> ' + stale.map(function(x){ return '<a href="#p-' + esc(x.p.id) + '">' + esc(x.p.name) + '</a>'; }).join(', ') + '. Update them first for an accurate report.</span></div>' : '') +
+    (m.items.length ? '<div class="paper" id="report-paper">' + reportHTML(m) + '</div>' : '<div class="panel empty"><h2>Nothing to report</h2><p>Add a project or include closed items.</p></div>') +
+    '<textarea class="copybox" id="report-text" readonly hidden aria-label="Report text"></textarea>';
+}
+
+/* ---------- Rules ---------- */
+function viewRules(){
+  var r = S.rules, ro = S.canWrite ? '' : ' disabled';
+  var f = function(k, label, unit, hint){ return '<div class="field"><label for="rl-' + k + '">' + label + '</label><div class="row" style="flex-wrap:nowrap"><input type="number" id="rl-' + k + '" name="' + k + '" min="0" step="1" value="' + esc(r[k]) + '" style="max-width:110px"><span class="muted" style="font-size:12.5px">' + unit + '</span></div>' + (hint ? '<span class="hint">' + hint + '</span>' : '') + '</div>'; };
+  var wsum = 0; D.CRITERIA.forEach(function(c){ wsum += D.num(r.weights[c.k]); });
+  return '<div class="head"><div><h1>Health rules</h1><p class="sub">The same rules run on every project. Overall health is the worst result. Set a count or the days to 0 to switch that check off.</p></div></div>' +
+    '<form data-form="rules" class="stack" novalidate><fieldset' + ro + ' class="stack">' +
+    '<section class="panel"><div class="panel-head"><h2>Schedule</h2><span class="muted">Compares % complete with % of the timeline used</span></div><div class="fgrid">' +
+      f('scheduleAmber', 'Amber when behind by', 'points') + f('scheduleRed', 'Red when behind by', 'points') +
+      f('overdueMsAmber', 'Amber at overdue milestones', 'or more') + f('overdueMsRed', 'Red at overdue milestones', 'or more') + '</div></section>' +
+    '<section class="panel"><div class="panel-head"><h2>Budget</h2><span class="muted">Spend vs progress (operations: vs time in period)</span></div><div class="fgrid">' +
+      f('burnAmber', 'Amber when spend runs ahead by', 'points') + f('burnRed', 'Red when spend runs ahead by', 'points') +
+      f('forecastAmber', 'Amber when forecast over budget by', '%') + f('forecastRed', 'Red when forecast over budget by', '%') + '</div></section>' +
+    '<section class="panel"><div class="panel-head"><h2>RAID & reporting</h2></div><div class="fgrid">' +
+      f('criticalOpenRed', 'Red at open critical risks/issues', 'or more') + f('highOpenAmber', 'Amber at open high risks/issues', 'or more') +
+      f('overdueActionsAmber', 'Amber at overdue actions', 'or more') + f('staleDays', 'Amber when not updated for more than', 'days') + '</div></section>' +
+    '<section class="panel"><div class="panel-head"><h2>Intake scoring weights</h2><span class="muted" id="wsum">Total ' + wsum + ' (scores are scaled to 100)</span></div><div class="fgrid">' +
+      D.CRITERIA.map(function(c){ return '<div class="field"><label for="rw-' + c.k + '">' + c.label + '</label><input type="number" id="rw-' + c.k + '" name="w_' + c.k + '" min="0" step="1" value="' + esc(r.weights[c.k]) + '" style="max-width:110px"><span class="hint">' + c.hint + '</span></div>'; }).join('') + '</div></section>' +
+    '<p class="err" id="rl-err" hidden></p>' +
+    '<div class="row"><button class="btn primary" type="submit">Save rules</button><button class="btn" type="button" data-act="rules-reset">Reset to defaults</button></div>' +
+    '</fieldset></form>';
+}
+
+/* ---------- Events ---------- */
+var toastTimer;
+function toast(msg){ var t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.hidden = true; }, 3600); }
+function showErr(id, msg){ var e = $('#' + id); if (!e) return; e.textContent = msg; e.hidden = !msg; }
+function val(form, name){ var el = form.elements[name]; return el ? String(el.value).trim() : ''; }
+function nonNeg(form, name){ var v = val(form, name); if (v === '') return 0; var n = Number(v); return isFinite(n) && n >= 0 ? n : NaN; }
+function markInvalid(form, names){ Array.prototype.forEach.call(form.querySelectorAll('[aria-invalid]'), function(el){ el.removeAttribute('aria-invalid'); });
+  names.forEach(function(n){ var el = form.elements[n]; if (el && el.setAttribute) el.setAttribute('aria-invalid', 'true'); }); if (names[0] && form.elements[names[0]] && form.elements[names[0]].focus) form.elements[names[0]].focus(); }
+
+function finishEdit(){ S.dirty = false; S.pending = false; }
+
+document.addEventListener('input', function(e){
+  if (e.target.closest('form[data-form]')) S.dirty = true;
+  if (e.target.id === 'u-pc'){ var o = $('#u-pc-out'); if (o) o.textContent = e.target.value + '%'; }
+  if (e.target.name && e.target.name.indexOf('w_') === 0){ var s = 0; D.CRITERIA.forEach(function(c){ var el = document.getElementById('rw-' + c.k); s += Number(el && el.value) || 0; }); var w = $('#wsum'); if (w) w.textContent = 'Total ' + s + ' (scores are scaled to 100)'; }
+});
+
+document.addEventListener('change', function(e){
+  var a = e.target.getAttribute('data-act');
+  if (!a) return;
+  if (a === 'data-restore'){
+    var inp = e.target;
+    LOCAL.readFile(inp.files && inp.files[0]).then(function(o){
+      if (!o || o.app !== APP) throw new Error(o && o.app ? 'That backup is from ' + o.app + ', not ' + APP + '.' : 'That file isn’t a ' + APP + ' backup.');
+      if (!applySnapshot(o)) throw new Error('That file isn’t a valid backup.');
+      S.dirty = false; persist(); render(); toast('Backup restored.');
+    }).catch(function(err){ toast(err.message || 'Couldn’t restore that file.'); inp.value = ''; });
+    return;
+  }
+  if (a === 'hide-closed'){ S.hideClosed = e.target.checked; render(); }
+  else if (a === 'raid-closed'){ S.showClosedRaid = e.target.checked; render(); }
+  else if (a === 'intake-done'){ S.showDoneIntake = e.target.checked; render(); }
+  else if (a === 'rep-scope'){ S.reportScope = e.target.value; render(); }
+  else if (a === 'rep-closed'){ S.reportClosed = e.target.checked; render(); }
+  else if (a === 'ms-toggle'){
+    var p = findProject(route().id); if (!p || !S.canWrite) return;
+    var np = clone(p); np.milestones.forEach(function(m){ if (m.id === e.target.getAttribute('data-ms')) m.done = e.target.checked; });
+    np.updated = nowIso(); save('projects', np.id, np); render();
+  }
+  else if (a === 'intake-status'){
+    var it = S.intake.find(function(x){ return x.id === e.target.getAttribute('data-id'); }); if (!it) return;
+    var ni = clone(it); ni.status = e.target.value; save('intake', ni.id, ni).then(function(ok){ if (ok) toast('Status set to ' + ni.status + '.'); }); render();
+  }
+});
+
+document.addEventListener('click', function(e){
+  var row = e.target.closest('tr.link');
+  if (row && !e.target.closest('a,button,input,select')){ location.hash = row.getAttribute('data-href'); return; }
+  var el = e.target.closest('[data-act]'); if (!el) { if (S.armed){ S.armed = null; render(); } return; }
+  var a = el.getAttribute('data-act');
+  if (el.tagName === 'INPUT' || el.tagName === 'SELECT') return;
+  var armedBefore = S.armed;
+  if (['raid-del','proj-del','intake-del','data-reset'].indexOf(a) < 0) S.armed = null;
+
+  if (a === 'filter'){ S.filter = el.getAttribute('data-v'); render(); }
+  else if (a === 'raid-filter'){ S.raidFilter = el.getAttribute('data-v'); render(); }
+  else if (a === 'toggle-intake-form'){ S.showIntakeForm = !S.showIntakeForm; render(); if (S.showIntakeForm){ var ti = $('#i-title'); if (ti) ti.focus(); } }
+  else if (a === 'new-ms-row'){
+    var f = el.closest('form'); var rows = f.querySelector('.msrows'); var i = rows.children.length;
+    var div = document.createElement('div'); div.className = 'msrow';
+    div.innerHTML = '<input type="text" name="msName" id="n-ms-' + i + '" maxlength="100" placeholder="Milestone" aria-label="Milestone ' + (i + 1) + ' name"><input type="date" name="msDue" id="n-msd-' + i + '" aria-label="Milestone ' + (i + 1) + ' due date"><span></span>';
+    rows.appendChild(div); div.querySelector('input').focus(); S.newMsRows = i + 1;
+  }
+  else if (a === 'cancel-new'){ S.prefill = null; S.newMsRows = 3; finishEdit(); }
+  else if (a === 'report-for'){ S.reportScope = el.getAttribute('data-id'); }
+  else if (a === 'load-sample'){
+    el.disabled = true;
+    var s = D.sampleData(new Date());
+    Promise.all(s.projects.map(function(p){ return save('projects', p.id, p); }).concat(s.intake.map(function(i){ return save('intake', i.id, i); })))
+      .then(function(){ toast('Sample portfolio loaded. Delete the sample projects when you add your own.'); render(); });
+  }
+  else if (a === 'ms-del'){
+    var p = findProject(route().id); if (!p) return;
+    var np = clone(p); np.milestones = np.milestones.filter(function(m){ return m.id !== el.getAttribute('data-ms'); });
+    save('projects', np.id, np); render();
+  }
+  else if (a === 'raid-status'){
+    var p2 = findProject(route().id); if (!p2) return;
+    var np2 = clone(p2); np2.raid.forEach(function(r){ if (r.id === el.getAttribute('data-r')) r.status = r.status === 'Closed' ? 'Open' : 'Closed'; });
+    np2.updated = nowIso(); save('projects', np2.id, np2); render();
+  }
+  else if (a === 'raid-del'){
+    var key = 'raid:' + el.getAttribute('data-r');
+    if (armedBefore !== key){ S.armed = key; render(); return; }
+    var p3 = findProject(route().id); if (!p3) return;
+    var np3 = clone(p3); np3.raid = np3.raid.filter(function(r){ return r.id !== el.getAttribute('data-r'); });
+    S.armed = null; save('projects', np3.id, np3).then(function(ok){ if (ok) toast('RAID item deleted.'); }); render();
+  }
+  else if (a === 'proj-del'){
+    var k2 = 'proj:' + el.getAttribute('data-id');
+    if (armedBefore !== k2){ S.armed = k2; render(); return; }
+    S.armed = null; var nm = (findProject(el.getAttribute('data-id')) || {}).name;
+    remove('projects', el.getAttribute('data-id')).then(function(ok){ if (ok) toast('Deleted “' + nm + '”.'); });
+    location.hash = '#portfolio'; render();
+  }
+  else if (a === 'intake-del'){
+    var k3 = 'intake:' + el.getAttribute('data-id');
+    if (armedBefore !== k3){ S.armed = k3; render(); return; }
+    S.armed = null; remove('intake', el.getAttribute('data-id')).then(function(ok){ if (ok) toast('Request deleted.'); }); render();
+  }
+  else if (a === 'intake-convert'){
+    var it = S.intake.find(function(x){ return x.id === el.getAttribute('data-id'); }); if (!it) return;
+    S.prefill = {fromIntake:it.id, name:it.title, objective:it.description || '', budget:it.estBudget || '', sponsor:it.requester || ''};
+    S.newMsRows = 3; location.hash = '#new';
+  }
+  else if (a === 'rules-reset'){
+    saveRules(D.DEFAULT_RULES).then(function(ok){ if (ok){ toast('Rules reset to defaults.'); finishEdit(); render(); } });
+  }
+  else if (a === 'copy-email' || a === 'copy-text'){
+    var m = currentReport(), text = D.reportText(m);
+    var done = function(ok){ if (ok) toast(a === 'copy-email' ? 'Copied with formatting. Paste into your email.' : 'Report copied as plain text.');
+      else { var ta = $('#report-text'); ta.value = text; ta.hidden = false; ta.focus(); ta.select(); toast('Copy blocked here. The text is selected below: press Ctrl+C or Cmd+C.'); } };
+    try {
+      if (a === 'copy-email' && window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+        navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([reportHTML(m)], {type:'text/html'}), 'text/plain':new Blob([text], {type:'text/plain'})})])
+          .then(function(){ done(true); }, function(){ copyPlain(text, done); });
+      } else copyPlain(text, done);
+    } catch(err){ done(false); }
+  }
+  else if (a === 'save-report'){
+    if (!S.downloads) return;
+    var m2 = currentReport();
+    S.downloads.save({filename:'weekly-status-' + D.iso(m2.weekEnding) + '.txt', data:D.reportText(m2)})
+      .then(function(){ toast('Report saved.'); }, function(err){ if (!err || err.code !== 'declined') toast('Couldn’t save the file. Use Copy as text instead.'); });
+  }
+  else if (a === 'data-backup'){
+    if (S.downloads) S.downloads.save({filename:'delivery-desk-backup-' + D.iso(today()) + '.json', data:JSON.stringify(snapshot(), null, 1), type:'application/json'})
+      .then(function(){ toast('Backup saved. Use Restore to load it here or on another computer.'); }, function(err){ if (!err || err.code !== 'declined') toast('Couldn’t save the backup.'); });
+  }
+  else if (a === 'data-reset'){
+    var rk = 'reset:' + el.getAttribute('data-v');
+    if (armedBefore !== rk){ S.armed = rk; render(); return; }
+    S.armed = null; S.dirty = false;
+    if (el.getAttribute('data-v') === 'sample') loadSampleLocal(); else { S.projects = []; S.intake = []; S.rules = D.mergeRules(null); }
+    persist(); history.replaceState(null, '', location.pathname + location.search); render(); window.scrollTo(0, 0);
+    toast(el.getAttribute('data-v') === 'sample' ? 'Sample portfolio loaded.' : 'Everything cleared. Set up your first project.');
+  }
+  else if (armedBefore){ render(); }
+});
+function copyPlain(text, done){
+  try { navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ done(false); }); } catch(e){ done(false); }
+}
+
+document.addEventListener('submit', function(e){
+  var form = e.target.closest('form[data-form]'); if (!form) return;
+  e.preventDefault();
+  if (!S.canWrite) return;
+  var kind = form.getAttribute('data-form');
+
+  if (kind === 'update'){
+    var p = findProject(form.getAttribute('data-id')); if (!p) return;
+    var bad = [], np = clone(p);
+    var name = val(form, 'name'); if (!name) bad.push('name');
+    ['spent','forecast','budget'].forEach(function(k){ var v = nonNeg(form, k); if (isNaN(v)) bad.push(k); else np[k] = v; });
+    var st = val(form, 'start'), en = val(form, 'end');
+    if (st && !D.parseDate(st)) bad.push('start'); if (en && !D.parseDate(en)) bad.push('end');
+    if (!bad.length && st && en && D.parseDate(en) < D.parseDate(st)){ bad.push('end'); }
+    if (bad.length){ markInvalid(form, bad); showErr('u-err', bad.indexOf('end') >= 0 && st && en ? 'The end date must be on or after the start date.' : 'Check the highlighted fields. Amounts must be zero or more.'); var det = form.querySelector('details'); if (det && bad.some(function(b){ return ['name','start','end','budget'].indexOf(b) >= 0; })) det.open = true; return; }
+    np.name = name; np.stage = val(form, 'stage'); np.owner = val(form, 'owner'); np.sponsor = val(form, 'sponsor');
+    np.start = st; np.end = en; np.objective = val(form, 'objective'); np.summary = val(form, 'summary'); np.nextSteps = val(form, 'nextSteps');
+    if (form.elements.percentComplete) np.percentComplete = D.clamp(Number(val(form, 'percentComplete')) || 0, 0, 100);
+    if (np.stage === 'Closed' && np.type !== 'Operations') np.percentComplete = Math.max(np.percentComplete, 100);
+    np.updated = nowIso();
+    finishEdit(); save('projects', np.id, np).then(function(ok){ if (ok) toast('Update saved. Health recalculated.'); }); render();
+  }
+  else if (kind === 'ms-add'){
+    var p2 = findProject(form.getAttribute('data-id')); if (!p2) return;
+    var nm = val(form, 'name'), due = val(form, 'due');
+    if (!nm || !D.parseDate(due)){ markInvalid(form, !nm ? ['name'] : ['due']); toast(!nm ? 'Give the milestone a name.' : 'Pick a due date for the milestone.'); return; }
+    var np2 = clone(p2); np2.milestones = (np2.milestones || []).concat([{id:uid('m'), name:nm, due:due, done:false}]);
+    finishEdit(); save('projects', np2.id, np2); render(); var f2 = $('#ms-name'); if (f2) f2.focus();
+  }
+  else if (kind === 'raid-add'){
+    var p3 = findProject(form.getAttribute('data-id')); if (!p3) return;
+    var title = val(form, 'title'), due2 = val(form, 'due'), type = val(form, 'type');
+    if (!title){ markInvalid(form, ['title']); toast('Describe the ' + type.toLowerCase() + ' first.'); return; }
+    if (due2 && !D.parseDate(due2)){ markInvalid(form, ['due']); return; }
+    var np3 = clone(p3); np3.raid = np3.raid || [];
+    var seq = np3.raid.filter(function(r){ return r.type === type; }).reduce(function(mx, r){ return Math.max(mx, D.num(r.seq)); }, 0) + 1;
+    np3.raid.push({id:uid('r'), type:type, seq:seq, title:title, severity:val(form, 'severity') || 'Medium', owner:val(form, 'owner'), due:due2, status:'Open', created:D.iso(today()), note:''});
+    np3.updated = nowIso();
+    finishEdit(); save('projects', np3.id, np3).then(function(ok){ if (ok) toast(type + ' ' + D.raidRef({type:type, seq:seq}) + ' logged.'); }); render();
+    var rt = $('#r-title'); if (rt) rt.focus();
+  }
+  else if (kind === 'new'){
+    var bad2 = [], name2 = val(form, 'name'), owner = val(form, 'owner'), s2 = val(form, 'start'), e2 = val(form, 'end');
+    if (!name2) bad2.push('name'); if (!owner) bad2.push('owner');
+    if (!D.parseDate(s2)) bad2.push('start'); if (!D.parseDate(e2)) bad2.push('end');
+    var budget = nonNeg(form, 'budget'), spent = nonNeg(form, 'spent');
+    if (isNaN(budget)) bad2.push('budget'); if (isNaN(spent)) bad2.push('spent');
+    var msg = 'Fill in the highlighted fields.';
+    if (!bad2.length && D.parseDate(e2) < D.parseDate(s2)){ bad2.push('end'); msg = 'The end date must be on or after the start date.'; }
+    var names = form.querySelectorAll('input[name=msName]'), dues = form.querySelectorAll('input[name=msDue]'), ms = [];
+    for (var i = 0; i < names.length; i++){
+      var mn = names[i].value.trim(), md = dues[i].value;
+      names[i].removeAttribute('aria-invalid'); dues[i].removeAttribute('aria-invalid');
+      if (!mn && !md) continue;
+      if (!mn || !D.parseDate(md)){ (mn ? dues[i] : names[i]).setAttribute('aria-invalid', 'true'); msg = 'Each milestone needs a name and a due date (or leave both blank).'; bad2.push('_ms'); continue; }
+      ms.push({id:uid('m'), name:mn, due:md, done:false});
+    }
+    if (bad2.length){ markInvalid(form, bad2.filter(function(b){ return b !== '_ms'; })); showErr('n-err', msg); return; }
+    var type2 = val(form, 'type') === 'Operations' ? 'Operations' : 'Project';
+    var id = uid('p');
+    var rec = {code:D.nextCode(S.projects, type2), name:name2, type:type2, stage:val(form, 'stage') || 'Initiate', owner:owner, sponsor:val(form, 'sponsor'),
+      objective:val(form, 'objective'), start:s2, end:e2, budget:budget, spent:spent, forecast:budget, percentComplete:0,
+      summary:'Project set up.', nextSteps:'', updated:nowIso(), created:nowIso(), milestones:ms, raid:[]};
+    var fromIntake = S.prefill && S.prefill.fromIntake;
+    finishEdit(); S.prefill = null; S.newMsRows = 3;
+    save('projects', id, rec).then(function(ok){
+      if (!ok) return;
+      toast(rec.code + ' created. Log risks and actions in the RAID log.');
+      if (fromIntake){ var it = S.intake.find(function(x){ return x.id === fromIntake; }); if (it){ var ni = clone(it); ni.status = 'Approved'; ni.projectId = id; save('intake', ni.id, ni); } }
+    });
+    location.hash = '#p-' + id;
+  }
+  else if (kind === 'intake'){
+    var t2 = val(form, 'title'); if (!t2){ markInvalid(form, ['title']); showErr('i-err', 'Give the request a short title.'); return; }
+    var eb = nonNeg(form, 'estBudget'); if (isNaN(eb)){ markInvalid(form, ['estBudget']); showErr('i-err', 'Rough cost must be zero or more.'); return; }
+    var scores = {}; D.CRITERIA.forEach(function(c){ var r = form.querySelector('input[name=' + c.k + ']:checked'); scores[c.k] = r ? Number(r.value) : 3; });
+    var rec2 = {title:t2, requester:val(form, 'requester'), description:val(form, 'description'), estBudget:eb, scores:scores, status:'New', created:D.iso(today())};
+    var sc = D.intakeScore(rec2, S.rules).score;
+    finishEdit(); save('intake', uid('i'), rec2).then(function(ok){ if (ok) toast('Request added with a score of ' + sc + '.'); });
+    S.showIntakeForm = false; render();
+  }
+  else if (kind === 'rules'){
+    var r = {weights:{}}, bad3 = [];
+    Object.keys(D.DEFAULT_RULES).forEach(function(k){ if (k === 'weights') return; var v = Number(val(form, k)); if (val(form, k) === '' || !isFinite(v) || v < 0) bad3.push(k); else r[k] = v; });
+    var wsum = 0; D.CRITERIA.forEach(function(c){ var v = Number(val(form, 'w_' + c.k)); if (!isFinite(v) || v < 0 || val(form, 'w_' + c.k) === '') bad3.push('w_' + c.k); else { r.weights[c.k] = v; wsum += v; } });
+    var msg3 = 'Use whole numbers of zero or more.';
+    if (!bad3.length){
+      if (r.scheduleRed < r.scheduleAmber) { bad3.push('scheduleRed'); msg3 = 'Each Red threshold must be at or above its Amber threshold.'; }
+      if (r.burnRed < r.burnAmber) { bad3.push('burnRed'); msg3 = 'Each Red threshold must be at or above its Amber threshold.'; }
+      if (r.forecastRed < r.forecastAmber) { bad3.push('forecastRed'); msg3 = 'Each Red threshold must be at or above its Amber threshold.'; }
+      if (r.overdueMsRed < r.overdueMsAmber && r.overdueMsRed > 0) { bad3.push('overdueMsRed'); msg3 = 'Each Red threshold must be at or above its Amber threshold.'; }
+      if (!wsum){ bad3.push('w_value'); msg3 = 'At least one intake weight must be above zero.'; }
+    }
+    if (bad3.length){ markInvalid(form, bad3); showErr('rl-err', msg3); return; }
+    finishEdit(); saveRules(r).then(function(ok){ if (ok) toast('Rules saved. Every project’s health has been recalculated.'); render(); });
+  }
+});
+
+init();
+})();
+</script>
+</body>
+</html>

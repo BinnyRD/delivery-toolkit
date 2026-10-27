@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Three lightweight delivery tools: a portfolio dashboard, a single-project desk and a business analysis workbench.">
+<title>Delivery Toolkit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a short catalogue page; three tools as equal entries, each with its own accent from its app */
+:root{--bg:#F1F2F3;--surface:#FFFFFF;--ink:#13181B;--muted:#5A6469;--line:#DCE0E3;
+  --pf:#2C49C2;--pd:#0B6E68;--ba:#8E2F57;--red:#C2342A;--amber:#B7790A;--green:#1F7D53;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;--f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0D1114;--surface:#151B1F;--ink:#E4E9EC;--muted:#9AA5AB;--line:#263036;
+  --pf:#8299FF;--pd:#4FC7BC;--ba:#E78AB1;--red:#F2685D;--amber:#EFB23C;--green:#4BC48B;color-scheme:dark}}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto;padding-block:56px 40px;display:flex;flex-direction:column;gap:36px}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.08;font-weight:700;max-width:20ch}
+.lede{color:var(--muted);max-width:62ch;margin:14px 0 0;font-size:16.5px}
+.signal{display:flex;gap:6px;margin-bottom:18px}
+.signal i{width:14px;height:14px;border-radius:3px;display:block}
+.tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px;display:flex;flex-direction:column;gap:12px;min-width:0;text-decoration:none;color:inherit}
+.tool:hover{border-color:var(--c)}
+.tool:focus-visible{outline:2px solid var(--c);outline-offset:3px}
+.mark{width:34px;height:34px;border-radius:7px;background:var(--c);color:var(--bg);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:13.5px}
+.tool h2{font-size:21px}
+.tool p{margin:0;color:var(--muted);font-size:14.5px}
+.tool ul{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
+.open{margin-top:auto;padding-top:6px;font-weight:600;color:var(--c);font-size:14.5px}
+.note{border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13.5px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.note p{margin:0;max-width:68ch}
+.note a{color:inherit}
+@media (max-width:860px){.tools{grid-template-columns:minmax(0,1fr)}.wrap{padding-block:32px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="signal" aria-hidden="true"><i style="background:var(--red)"></i><i style="background:var(--amber)"></i><i style="background:var(--green)"></i></div>
+    <h1>Delivery tools that explain themselves</h1>
+    <p class="lede">Three lightweight tools for project and business analysis work. Each one works out status from the data and tells you why, so a Red or Amber comes with a reason you can act on.</p>
+  </header>
+  <main class="tools">
+    <a class="tool" href="delivery-desk.html" style="--c:var(--pf)">
+      <span class="mark" aria-hidden="true">DD</span><h2>Delivery Desk</h2>
+      <p>A portfolio view of projects and day-to-day operations.</p>
+      <ul><li>Red/Amber/Green with the reason</li><li>RAID log for every project</li><li>Intake scoring for new requests</li><li>One-click weekly status report</li></ul>
+      <span class="open">Open Delivery Desk →</span>
+    </a>
+    <a class="tool" href="project-desk.html" style="--c:var(--pd)">
+      <span class="mark" aria-hidden="true">PD</span><h2>Project Desk</h2>
+      <p>One project, run properly from plan to close.</p>
+      <ul><li>Plan and timeline with dependencies</li><li>Budget, change requests, stakeholders</li><li>Benefits, lessons and improvement</li><li>Rules that suggest the admin work</li></ul>
+      <span class="open">Open Project Desk →</span>
+    </a>
+    <a class="tool" href="ba-desk.html" style="--c:var(--ba)">
+      <span class="mark" aria-hidden="true">BA</span><h2>BA Desk</h2>
+      <p>Requirements to sign-off, with fewer surprises in UAT.</p>
+      <ul><li>Flags vague and untestable requirements</li><li>Stories checked for sprint readiness</li><li>Gap → requirement → story → test trace</li><li>Exports a requirements specification</li></ul>
+      <span class="open">Open BA Desk →</span>
+    </a>
+  </main>
+  <footer class="note">
+    <p>Each tool opens with fictional sample data. Anything you change is saved in your own browser only; nothing is sent anywhere. Use Back up in each tool to keep a copy.</p>
+    <p>Built by Rakesh Binny Dasari · <a href="https://www.linkedin.com/in/rakeshbinny">LinkedIn</a></p>
+  </footer>
+</div>
+</body>
+</html>
